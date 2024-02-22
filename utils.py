@@ -3,10 +3,14 @@ import csv
 import pandas as pd
 from openai import OpenAI
 from typing import Union, List, Dict, Optional, Tuple
+
+import os
+from os.path import join, dirname
 from dotenv import load_dotenv
 
-load_dotenv()
-print(OPENAI_KEY)
+dotenv_path = join(dirname(__file__), '.env')
+load_dotenv(dotenv_path)
+OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
 DATAPATH = "./data"
 os.makedirs(DATAPATH, exist_ok=True)
