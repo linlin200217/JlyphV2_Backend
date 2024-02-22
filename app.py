@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
-from utils import DATAPATH, data_process, word_recommendation
+from utils import DATAPATH, data_process
 
 app = Flask(__name__)
 CORS(app)
@@ -17,6 +17,7 @@ async def load_data():
         data_title: string,
         Categorical: [],
         Numerical: [],
+        Wordcloud: []
     }
     """
     if request.method == 'POST':
