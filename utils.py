@@ -3,10 +3,13 @@ import csv
 import pandas as pd
 from openai import OpenAI
 from typing import Union, List, Dict, Optional, Tuple
+from dotenv import load_dotenv
+
+load_dotenv()
+print(OPENAI_KEY)
 
 DATAPATH = "./data"
 os.makedirs(DATAPATH, exist_ok=True)
-OPENAI_API_KEY = "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"
 
 def csv_to_text(data_path):
     data = []
@@ -22,7 +25,7 @@ def csv_to_text(data_path):
 
 def word_recommendation(system_prompt, data_path):
     client = OpenAI(
-    api_key = OPENAI_API_KEY,
+    api_key = OPENAI_KEY,
     )
     chat_completion = client.chat.completions.create(
         messages=[
