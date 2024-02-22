@@ -2,6 +2,8 @@ import openai
 import csv
 from openai import OpenAI
 
+DATAPATH = "./data"
+os.makedirs(DATAPATH, exist_ok=True)
 OPENAI_API_KEY = "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"
 
 system_prompt = ("You will be provided with a csv data file. Analyse the data. First figure out the data subject, and based on the subject, associate several relevent objects.\n"
