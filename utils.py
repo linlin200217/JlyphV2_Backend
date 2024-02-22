@@ -1,6 +1,8 @@
 import openai
 import csv
+import pandas as pd
 from openai import OpenAI
+from typing import Union, List, Dict, Optional, Tuple
 
 DATAPATH = "./data"
 os.makedirs(DATAPATH, exist_ok=True)
@@ -20,6 +22,17 @@ system_prompt = ("You will be provided with a csv data file. Analyse the data. F
                 "hamburger, sandwich, chip, fried chicken, potato, tomato, pizza, restaurant"
 )
 
+def data_process(data_path: str) -> Dict:
+    data = pd.read_csv(data_path)
+    data_title = data_path.split("/")[-1].split(".")[0]
+    struct = {"data_title": data_title, "Categorical": {}, "Numerical": {}}
+    for column in data.columns:
+        if data[column].dtype.name == "object":
+            struct["Categorical"][column] = data[column].tolist()
+        else:
+            struct["Numerical"][column] = data[column].tolist()
+    return struct
+
 def csv_to_text(data_path):
     data = []
     with open(data_path, 'r', encoding='utf-8') as file:
@@ -30,7 +43,6 @@ def csv_to_text(data_path):
     for row in data:
         row_text = ', '.join([f"{key}: {value}" for key, value in row.items()])
         text_content += f"- {row_text}\n"
-
     return text_content
 
 def word_recommendation(system_prompt, data_path):
