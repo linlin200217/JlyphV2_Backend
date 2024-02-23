@@ -1,7 +1,12 @@
+import datetime
+import random
+import requests
 import openai
 import csv
 import pandas as pd
+from io import BytesIO
 from openai import OpenAI
+from PIL import Image, ImageDraw
 from typing import Union, List, Dict, Optional, Tuple
 
 import os
@@ -13,7 +18,22 @@ load_dotenv(dotenv_path)
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
 DATAPATH = "./data"
+IMAGE_RESOURCE_PATH = "./resources"
 os.makedirs(DATAPATH, exist_ok=True)
+os.makedirs(IMAGE_RESOURCE_PATH, exist_ok=True)
+
+def save_image(img: Image.Image, prefix: Optional[str], type: str = "png") -> str:
+    img_copy = img.copy()
+    img_resized = img_copy.resize((512, 512))
+    prefix = prefix or "main_"
+    image_id = int(datetime.datetime.now().timestamp() +
+                   random.randrange(1, 10000))
+    filename = f"{prefix}{image_id}.{type}"
+    img_resized.save(os.path.join(IMAGE_RESOURCE_PATH, filename), format=type)
+    return prefix + str(image_id)
+
+def get_image_by_id(image_id: str) -> Image.Image:
+    return Image.open(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png")).resize((512,512))
 
 def csv_to_text(data_path):
     data = []
@@ -66,3 +86,27 @@ def data_process(data_path: str) -> Dict:
             struct["Numerical"][column] = data[column].tolist()
     struct["Wordcloud"] = word_recommendation(system_prompt, data_path)
     return struct
+
+def image_recommendation(user_prompt):
+
+    prompt = f"A single, cartoon style, 2D {user_prompt}, flat with no shadow, white background"
+
+    client = OpenAI(
+        api_key=OPENAI_API_KEY
+    )
+
+    image_generation = client.images.generate(
+        prompt=prompt,
+        model="dall-e-2",
+        n=3, 
+        size="1024x1024"
+    )
+    for i, image in enumerate(image_generation.data):
+        response = requests.get(image.url)
+        if response.status_code == 200:
+            image_bytes_io = BytesIO(response.content)
+            image = Image.open(image_bytes_io)
+            ideation_image_id = save_image(image, "ideal")
+        else:
+            print("Failed to retrieve image.")
+    return ideation_image_id
