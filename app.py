@@ -1,6 +1,8 @@
-from flask import Flask
+import os
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from utils import DATAPATH, IMAGE_RESOURCE_PATH, data_process, image_recommendation
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
@@ -22,6 +24,7 @@ async def load_data():
     """
     if request.method == 'POST':
         f = request.files['file']
+
         file_path = os.path.join(DATAPATH, secure_filename(f.filename))
         f.save(file_path)
         struct = data_process(file_path)

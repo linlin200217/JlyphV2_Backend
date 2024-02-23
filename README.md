@@ -28,7 +28,5 @@ python3.10 -m pip freeze > requirements.txt
 
 Start the Flask app
 ```shell
-python3.10 app.py
-# or
-python3.10 -m flask --app app run
+python3.10 -m flask --app app run --host=0.0.0.0 --port=9005
 ```
