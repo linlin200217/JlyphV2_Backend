@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
-from utils import DATAPATH, data_process
+from utils import DATAPATH, IMAGE_RESOURCE_PATH, data_process, image_recommendation
 
 app = Flask(__name__)
 CORS(app)
@@ -26,3 +26,11 @@ async def load_data():
         f.save(file_path)
         struct = data_process(file_path)
         return jsonify(struct)
+
+@app.route("/pregenerate", methods=["POST"])
+async def pregenerate():
+    """
+    """
+    image_id = image_recommendation(request.json)
+    return jsonify({"status": "success", "image_id": image_id})
+
