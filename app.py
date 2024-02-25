@@ -34,6 +34,9 @@ async def load_data():
 async def pregenerate():
     """
     """
-    image_id = image_recommendation(request.json)
-    return jsonify({"status": "success", "image_id": image_id})
+    image_ids = image_recommendation(request.json["user_prompt"])
+    return jsonify({"status": "success", "image_id": image_ids})
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8000, debug=True)
 
