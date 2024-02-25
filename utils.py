@@ -88,6 +88,7 @@ def data_process(data_path: str) -> Dict:
     return struct
 
 def image_recommendation(user_prompt):
+    ideation_image_set = []
 
     prompt = f"A single, cartoon style, 2D {user_prompt}, flat with no shadow, white background"
 
@@ -107,6 +108,7 @@ def image_recommendation(user_prompt):
             image_bytes_io = BytesIO(response.content)
             image = Image.open(image_bytes_io)
             ideation_image_id = save_image(image, "ideal")
+            ideation_image_set.append(ideation_image_id)
         else:
             print("Failed to retrieve image.")
-    return ideation_image_id
+    return ideation_image_set
