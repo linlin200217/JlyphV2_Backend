@@ -93,7 +93,7 @@ def image_recommendation(user_prompt):
     prompt = f"A single, cartoon style, 2D {user_prompt}, flat with no shadow, white background"
 
     client = OpenAI(
-        api_key=OPENAI_API_KEY
+        api_key=OPENAI_KEY
     )
 
     image_generation = client.images.generate(

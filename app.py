@@ -24,7 +24,6 @@ async def load_data():
     """
     if request.method == 'POST':
         f = request.files['file']
-
         file_path = os.path.join(DATAPATH, secure_filename(f.filename))
         f.save(file_path)
         struct = data_process(file_path)
@@ -38,5 +37,5 @@ async def pregenerate():
     return jsonify({"status": "success", "image_id": image_ids})
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=9005, debug=True)
 
