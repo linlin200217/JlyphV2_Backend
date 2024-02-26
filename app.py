@@ -36,6 +36,14 @@ async def pregenerate():
     image_ids = image_recommendation(request.json["user_prompt"])
     return jsonify({"status": "success", "image_id": image_ids})
 
+def get_image(image_id):
+    """
+    GET: HOST/image/<image_id> 
+    return:
+        image
+    """
+    return send_file(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=9005, debug=True)
 
