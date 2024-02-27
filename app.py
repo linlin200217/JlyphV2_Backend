@@ -40,14 +40,22 @@ async def pregenerate():
 async def maskselect():
     """
     INPUT DATA{
-        widget: {'x': 162, 'y': 279, 'width': 204, 'height': 58}
-        image_id: str
+        {x,y,with,height}, image_id, 2
     }
     RETURN DATA {
         mask_image_id:str,
-        outlier_image_id:str
     }
     """
+    data = request.json
+    widget = data.get('widget')  # 从请求中获取 widget
+    image_id = data.get('image_id')  # 从请求中获取 image_id
+    mask_refine = data.get('mask_refine')  # 从请求中获取 mask_refine
+    
+    # 调用你的处理函数，并传递收到的参数
+    mask_image_id = extract_mask_image(widget, image_id, mask_refine)
+    
+    # 将新的 image_id 返回给前端
+    return jsonify({"mask_image_id": mask_image_id})
     return None
 
 async def generate_element():
