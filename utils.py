@@ -3,11 +3,14 @@ import random
 import requests
 import openai
 import csv
+import cv2
+import numpy as np
 import pandas as pd
 from io import BytesIO
 from openai import OpenAI
 from PIL import Image, ImageDraw
 from typing import Union, List, Dict, Optional, Tuple
+from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 
 import os
 from os.path import join, dirname
@@ -16,11 +19,24 @@ from dotenv import load_dotenv
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 OPENAI_KEY = os.environ.get("OPENAI_KEY")
+DEVICE = "cuda"
+MODEL_TYPE = "vit_h"
+COLOR_MAP = {
+    True: (255, 255, 255),
+    False: (39, 78, 19),
+}
 
 DATAPATH = "./data"
 IMAGE_RESOURCE_PATH = "./resources"
+WEIGHTSPATH = "./weights"
 os.makedirs(DATAPATH, exist_ok=True)
 os.makedirs(IMAGE_RESOURCE_PATH, exist_ok=True)
+os.makedirs(WEIGHTSPATH, exist_ok=True)
+
+wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -P weights
+CHECKPOINT_PATH = os.path.join("weights", "sam_vit_h_4b8939.pth")
+sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
+mask_predictor = SamPredictor(sam)
 
 def save_image(img: Image.Image, prefix: Optional[str], type: str = "png") -> str:
     img_copy = img.copy()
@@ -112,3 +128,74 @@ def image_recommendation(user_prompt):
         else:
             print("Failed to retrieve image.")
     return ideation_image_set
+
+def extract_mask(widget, image_id:str, mask_refine:int):
+  box = widget
+  box = np.array([
+      box['x'],
+      box['y'],
+      box['x'] + box['width'],
+      box['y'] + box['height']
+  ])
+  image_bgr = cv2.imread(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
+  image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+  mask_predictor.set_image(image_rgb)
+  masks, scores, logits = mask_predictor.predict(
+    box=box,
+    multimask_output=True
+  )
+  mask = masks[mask_refine]
+  return mask
+
+def extract_initial_image(widget, image_id:str, mask_refine:int):
+  image_bgr = cv2.imread(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
+  image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+  mask = extract_mask(widget, image_id, mask_refine)
+  width = len(mask)
+  height = len(mask)
+  image = Image.new("RGB", (width, height))
+
+  mask_shape = mask.shape
+  initial_image = Image.new('RGB', (mask_shape[1], mask_shape[0]), (255, 255, 255))
+  for i in range(mask_shape[0]):
+      for j in range(mask_shape[1]):
+          if mask[i][j]:
+              initial_image.putpixel((j, i), tuple(image_rgb[i][j]))
+  out_initial_id = save_image(initial_image, "initial")
+  return out_initial_id
+
+def extract_mask_image(widget, image_id:str, mask_refine:int):
+  image_bgr = cv2.imread(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
+  image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+  mask = extract_mask(widget, image_id, mask_refine)
+  width = len(mask)
+  height = len(mask)
+  image = Image.new("RGB", (width, height))
+  for y in range(height):
+      for x in range(width):
+          pixel_color = COLOR_MAP[mask[y][x]]
+          image.putpixel((x, y), pixel_color)
+  out_mask_id = save_image(image, "mask")
+
+  outlier_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+  draw = ImageDraw.Draw(outlier_image)
+  for y in range(height):
+    for x in range(width):
+        if mask[y][x]:
+            pixel_color = (0, 0, 0, 0)
+            if (
+                x == 0
+                or x == width - 1
+                or y == 0
+                or y == height - 1
+                or not mask[y - 1][x]
+                or not mask[y + 1][x]
+                or not mask[y][x - 1]
+                or not mask[y][x + 1]
+            ):
+                for i in range(15):
+                    if x + i < width:
+                        draw.point((x + i, y), fill=(39, 78, 19))
+  out_outlier_id = save_image(outlier_image, "outlier")
+  mask_result = out_mask_id
+  return mask_result
