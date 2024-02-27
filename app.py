@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from utils import DATAPATH, IMAGE_RESOURCE_PATH, data_process, image_recommendation
+from utils import DATAPATH, IMAGE_RESOURCE_PATH, data_process, image_recommendation, extract_mask_image
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
