@@ -33,7 +33,7 @@ os.makedirs(DATAPATH, exist_ok=True)
 os.makedirs(IMAGE_RESOURCE_PATH, exist_ok=True)
 os.makedirs(WEIGHTSPATH, exist_ok=True)
 
-wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -P weights
+# wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -P weights
 CHECKPOINT_PATH = os.path.join("weights", "sam_vit_h_4b8939.pth")
 sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
 mask_predictor = SamPredictor(sam)

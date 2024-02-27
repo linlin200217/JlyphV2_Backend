@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from utils import DATAPATH, IMAGE_RESOURCE_PATH, data_process, image_recommendation, extract_mask_image
 from werkzeug.utils import secure_filename
@@ -40,10 +40,17 @@ async def pregenerate():
 async def maskselect():
     """
     INPUT DATA{
-        {x,y,with,height}, image_id, 2
+        widget: {
+            x: number,
+            y: number,
+            width: number,
+            height: number
+            },
+            image_id: string,
+            mask_refine: nu mber, (0, 1, 2; 2 by default)
     }
     RETURN DATA {
-        mask_image_id:str,
+        mask_image_id: string,
     }
     """
     data = request.json
