@@ -16,6 +16,10 @@ import os
 from os.path import join, dirname
 from dotenv import load_dotenv
 
+# pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
+os.environ['CUDA_HOME'] = '/usr/local/cuda-11.3'
+os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3"
+
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 OPENAI_KEY = os.environ.get("OPENAI_KEY")

@@ -46,8 +46,8 @@ async def maskselect():
             width: number,
             height: number
             },
-            image_id: string,
-            mask_refine: nu mber, (0, 1, 2; 2 by default)
+        image_id: string,
+        mask_refine: number, (0, 1, 2; 2 by default)
     }
     RETURN DATA {
         mask_image_id: string,
