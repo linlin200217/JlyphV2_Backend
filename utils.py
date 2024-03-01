@@ -374,3 +374,43 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, data_path):
 
     return rgba_images_by_category
 
+
+def regenerate_prompt(prompt: Optional[str] = None, whole_prompt: Optional[str] = None):
+    color = random.choice(COLOR)
+    if prompt and whole_prompt:
+        raise ValueError("prompt and whole_prompt cannot both be provided.")
+    elif prompt:
+        return f"A {color} {prompt}."
+    elif whole_prompt:
+        return whole_prompt
+    else:
+        raise ValueError("Either prompt or whole_prompt must be provided.")
+    
+def regenerate_wholeimage(image_id: str,prompt: Optional[str] = None, whole_prompt: Optional[str] = None):
+    prompt_re = regenerate_prompt(prompt, whole_prompt)
+    re_generate_image_id = generate_image(prompt_re, image_id)
+    return re_generate_image_id
+
+def convert_RGBA(image_id, mask):
+    new_image = get_image_by_id(image_id)
+    image_np = np.array(new_image)
+    mask_8bit = mask.astype(np.uint8) * 255
+    extracted = cv2.bitwise_and(image_np, image_np, mask=mask_8bit)
+    alpha = np.zeros_like(mask_8bit)
+    alpha[mask] = 255
+    extracted_rgba = cv2.cvtColor(extracted, cv2.COLOR_BGR2BGRA)
+    extracted_rgba[:, :, 3] = alpha
+    image_rgba = Image.fromarray(extracted_rgba).resize((512,512))
+    rgba_image_id = save_image(image_rgba, "rgba")
+    return rgba_image_id
+
+def regenerate_rgb(image_id: str, mask, prompt: Optional[str] = None, whole_prompt: Optional[str] = None):
+    mask_let_transformed = {mask["Colname"]: [mask["widget"], mask["Refine_num"]]}
+    re_generate_image_id = regenerate_wholeimage(image_id, prompt, whole_prompt)
+    values = [*mask_let_transformed.values()]
+    mask_wid = values[0][0]
+    mask_num = values[0][1]
+    mask_re = extract_mask(mask_wid, image_id, mask_num)
+    re_generate_rgba_id = convert_RGBA(re_generate_image_id, mask_re)
+    return re_generate_rgba_id 
+
