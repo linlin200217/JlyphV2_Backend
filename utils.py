@@ -234,8 +234,8 @@ def make_prompt_for_each_mask(prompts: List[str], cat_num, path) -> Dict[str, Li
     df = pd.read_csv(path)
     dic_cat_num = {"Categorical": [], "Numerical": []}
 
-    widgets_str_0 = {k: str(v) for k, v in selection[0].items()}
-    widgets_str_1 = {k: str(v) for k, v in selection[1].items()}
+    widgets_str_0 = {k: str(v) for k, v in cat_num[0].items()}
+    widgets_str_1 = {k: str(v) for k, v in cat_num[1].items()}
 
     reverse_widgets_str_1 = {v: k for k, v in widgets_str_1.items()}
 
