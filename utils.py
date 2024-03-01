@@ -290,32 +290,6 @@ def generate_images_by_category(category_prompts, category_image_ids):
             out_image_ids.append(out_image_id)
         generated_images[category] = out_image_ids
     return generated_images
-
-
-def generate_image(prompt: str, image_id: str, image_prefix: Optional[str] = None):
-    img = np.array(get_image_by_id(image_id))
-    low_threshold = 100
-    high_threshold = 200
-    img = cv2.Canny(img, low_threshold, high_threshold)
-    img = img[:, :, None]
-    img = np.concatenate([img, img, img], axis=2)
-    canny_image = Image.fromarray(img).resize((512,512))
-
-    out = PIPE_SDCC(prompt, num_inference_steps=20,
-                    image=canny_image).images[0].resize((512,512))
-    out_image_id = save_image(out, "generate")
-    return out_image_id
-  
-def generate_images_by_category(category_prompts, category_image_ids):
-    generated_images = {}
-    for category, prompts in category_prompts.items():
-        image_id = category_image_ids[category]  # 获取当前类别对应的image_id
-        out_image_ids = []
-        for prompt, _, _ in prompts:
-            out_image_id = generate_image(prompt, image_id)  # 生成图片并获取图片ID
-            out_image_ids.append(out_image_id)
-        generated_images[category] = out_image_ids
-    return generated_images
   
   ####FORMAL####
 def convert_RGBA_batch(selection, prompt, mask_ori, chosen_image_id, data_path):
