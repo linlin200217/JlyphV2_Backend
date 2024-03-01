@@ -229,9 +229,9 @@ def extract_mask_image(widget, image_id:str, mask_refine:int):
 
 
 ###### FORMAL ########
-def make_prompt_for_each_mask(prompts: List[str], cat_num) -> Dict[str, List[Tuple]]:
+def make_prompt_for_each_mask(prompts: List[str], cat_num, path) -> Dict[str, List[Tuple]]:
 
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(path)
     dic_cat_num = {"Categorical": [], "Numerical": []}
 
     widgets_str_0 = {k: str(v) for k, v in selection[0].items()}
@@ -300,7 +300,7 @@ def generate_images_by_category(category_prompts, category_image_ids):
     return generated_images
   
 ####FORMAL####
-def convert_RGBA_batch(prompt, mask_forall, chosen_image_id):
+def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
     mask_ori = {item["Colname"]: [item["Widget"], item["Refine_num"]] for item in mask_forall}
     categorical_dict = {}
     numerical_dict = {}
@@ -310,8 +310,8 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id):
         elif item["Class"] == "Numerical":
             numerical_dict[item["Colname"]] = item["Widget"]
     selection = [categorical_dict, numerical_dict]
-    
-    df = pd.read_csv(file_path)
+
+    df = pd.read_csv(path)
     categoricals = []
     rgba_images_by_category = {}
     initial_image_ids = {}
@@ -346,7 +346,7 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id):
         initial_image_ids[c] = initial_image
     category_image_ids = initial_image_ids
 
-    category_prompts = make_prompt_for_each_mask(prompts, selection, df)
+    category_prompts = make_prompt_for_each_mask(prompts, selection, path)
     generate_image_ids = generate_images_by_category(category_prompts, category_image_ids)
 
     for category, ids in generate_image_ids.items():

@@ -7,6 +7,8 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 CORS(app)
 
+data_file_path = ''
+
 @app.route('/')
 def hello():
     return 'Backend listening...'
@@ -25,6 +27,8 @@ async def load_data():
     if request.method == 'POST':
         f = request.files['file']
         file_path = os.path.join(DATAPATH, secure_filename(f.filename))
+        global data_file_path
+        data_file_path = file_path
         f.save(file_path)
         struct = data_process(file_path)
         return jsonify(struct)
@@ -87,7 +91,7 @@ async def generate_element():
     prompt = data.get("prompt")
     mask_forall = data.get("mask_forall")
     chosen_image_id = data.get("chosen_image_id")
-    rgba_images_by_category = convert_RGBA_batch(prompt, mask_forall, chosen_image_id)
+    rgba_images_by_category = convert_RGBA_batch(prompt, mask_forall, chosen_image_id, data_file_path)
     return jsonify({"rgba_images_by_category": rgba_images_by_category})
     return None
 
