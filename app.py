@@ -64,22 +64,41 @@ async def maskselect():
     # 将新的 image_id 返回给前端
     return jsonify({"mask_image_id": mask_image_id})
     return None
-
+    
+@app.route("/generate_element", methods=["POST"])
 async def generate_element():
     """
     INPUT DATA{
-        masks: {
-            'Meat': [widget_meet,2], 
-            'Vegetable': [widget_tomato,2],
-            'Name': [widget_bottom_bread,2],
-            'Bread': [widget_top_bread,2]
-            }
-        image_id: str
-    }
+        selection: [
+                    {"Name": "widget_bottom_bread", "Meat": "widget_meet", "Bread": "widget_top_bread", "Vegetable": "widget_tomato"},
+                    {"HealthyDeg": "widget_lettuce", "PopularDeg": "widget_meet"}
+                    ]
+        prompt: str
+        mask: {
+                'Name': [widget_top_bread,2],
+                'Meat': [widget_meet,2],
+                'Bread': [widget_bottom_bread,2],
+                'Vegetable': [widget_tomato,2],
+                'HealthyDeg': [widget_lettuce,2],
+                'PopularDeg': [widget_meet,2]
+                }
+        chosen_image_id: str}
     RETURN DATA {
-        {'Meat':[{'rgba_image_id': 'rgba1708965745', 'prompt_detail': 'Beef'}, {'rgba_image_id': 'rgba1708963415', 'prompt_detail': 'Chicken'}],...}
+        rgba_images_by_category: dic
     }
     """
+    if request.method == 'POST':
+        f = request.files['file']
+        file_path = os.path.join(DATAPATH, secure_filename(f.filename))
+        f.save(file_path)
+        data = request.json
+        selection = data.get("selection")
+        prompt = data.get("prompt")
+        mask = data.get("mask")
+        chosen_image_id = data.get("chosen_image_id")
+        rgba_images_by_category = convert_RGBA_batch(selection, prompt, mask, chosen_image_id, file_path)
+        return jsonify({"rgba_images_by_category": rgba_images_by_category})
+    
     return None
 
 @app.route("/image/<image_id>")
