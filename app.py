@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-from utils import DATAPATH, IMAGE_RESOURCE_PATH, data_process, image_recommendation, extract_mask_image
+from utils import DATAPATH, IMAGE_RESOURCE_PATH, COLOR, data_process, image_recommendation, extract_mask_image, convert_RGBA_batch, regenerate_rgb
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -94,6 +94,41 @@ async def generate_element():
         return jsonify({"rgba_images_by_category": rgba_images_by_category})
     
     return None
+
+@app.route("/regenerate", methods=["POST"])
+def regenerate():
+    """
+    INPUT DATA{
+        image_id:str,
+        mask:{
+            "Colname": str,
+            "Widget": dic,
+            "Refine_num": num
+        }
+        prompt?: str,
+        whole_prompt?: str
+    }
+    RETURN DATA{
+        re_generate_rgba_id : str
+    }
+    """
+    re_generate_rgba_id = regenerate_rgb(image_id, mask, prompt, whole_prompt)
+    return jsonify({"re_generate_rgba_id": re_generate_rgba_id})
+
+@app.route('/color', methods=["POST"])
+def get_color():
+    """
+    POST
+    {
+        exist_color: list[str]
+    }
+    return
+    {
+        color: list[str]
+    }
+    """
+    exist_color = request.json["exist_color"]
+    return jsonify({"color": set(COLOR) - set(exist_color)})
 
 @app.route("/image/<image_id>")
 def get_image(image_id):
