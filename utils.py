@@ -1,6 +1,7 @@
 import datetime
 import random
 import requests
+import torch
 import openai
 import csv
 import cv2
@@ -227,23 +228,30 @@ def extract_mask_image(widget, image_id:str, mask_refine:int):
   return mask_result
 
 
-def make_prompt_for_each_mask(prompts: List[str], cat_num, data_path):
-    df = pd.read_csv(data_path)
-    categoricals_numericals = {"Categorical": [], "Numerical": []}
-    first_dict_values = set(cat_num[0].values())
-    second_dict_values = set(cat_num[1].values())
+###### FORMAL ########
+def make_prompt_for_each_mask(prompts: List[str], cat_num, data_path) -> Dict[str, List[Tuple]]:
 
-    for key, value in cat_num[0].items():
-        if value in second_dict_values or value in first_dict_values:
-            categoricals_numericals["Categorical"].append(key)
-    for key, value in cat_num[1].items():
-        if value not in first_dict_values:
-            categoricals_numericals["Numerical"].append(key)
+    df = pd.read_csv(data_path)
+    dic_cat_num = {"Categorical": [], "Numerical": []}
+
+    widgets_str_0 = {k: str(v) for k, v in selection[0].items()}
+    widgets_str_1 = {k: str(v) for k, v in selection[1].items()}
+
+    reverse_widgets_str_1 = {v: k for k, v in widgets_str_1.items()}
+
+    for key, widget_str in widgets_str_0.items():
+        dic_cat_num["Categorical"].append(key)
+
+        if widget_str in reverse_widgets_str_1:
+            reverse_widgets_str_1.pop(widget_str)  
+
+    for key in reverse_widgets_str_1.values():
+        dic_cat_num["Numerical"].append(key)
 
     prompts_dict = {}
     prompt_index = 0
-    
-    for category, items in categoricals_numericals.items():
+
+    for category, items in dic_cat_num.items():
         for item in items:
             if category == "Categorical" and prompt_index < len(prompts):
                 item_duplicated = df[item].drop_duplicates()
@@ -252,13 +260,13 @@ def make_prompt_for_each_mask(prompts: List[str], cat_num, data_path):
                 colors = random.sample(COLOR, min(num, len(COLOR)))
                 prompt_list = [(f"A {color} {prompts[prompt_index]}", color, value) for value, color in zip(item_duplicated, colors)]
                 prompts_dict[item] = prompt_list
-                prompt_index += 1 
+                prompt_index += 1
 
             elif category == "Numerical" and prompt_index < len(prompts):
                 color = random.choice(COLOR)
                 prompt_list = [(f"A {color} {prompts[prompt_index]}", color, item)]
                 prompts_dict[item] = prompt_list
-                prompt_index += 1 
+                prompt_index += 1
     if prompt_index != len(prompts):
         raise ValueError("Not all prompts have been used. Please check the categoricals_numericals dictionary and prompts list for consistency.")
 
@@ -291,33 +299,51 @@ def generate_images_by_category(category_prompts, category_image_ids):
         generated_images[category] = out_image_ids
     return generated_images
   
-  ####FORMAL####
-def convert_RGBA_batch(selection, prompt, mask_ori, chosen_image_id, data_path):
+####FORMAL####
+def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, data_path):
+    mask_ori = {item["Colname"]: [item["Widget"], item["Refine_num"]] for item in mask_forall}
+    categorical_dict = {}
+    numerical_dict = {}
+    for item in mask_forall:
+        if item["Class"] == "Categorical":
+            categorical_dict[item["Colname"]] = item["Widget"]
+        elif item["Class"] == "Numerical":
+            numerical_dict[item["Colname"]] = item["Widget"]
+    selection = [categorical_dict, numerical_dict]
+
     df = pd.read_csv(data_path)
     categoricals = []
     rgba_images_by_category = {}
     initial_image_ids = {}
     category_image_ids = {}
     dic_cat_num = {"Categorical": [], "Numerical": []}
-    first_dict_values = set(selection[0].values())
-    second_dict_values = set(selection[1].values())
-    for key, value in selection[0].items():
-        if value in second_dict_values or value in first_dict_values:
-            dic_cat_num["Categorical"].append(key)
-    for key, value in selection[1].items():
-        if value not in first_dict_values:
-            dic_cat_num["Numerical"].append(key)
+
+    widgets_str_0 = {k: str(v) for k, v in selection[0].items()}
+    widgets_str_1 = {k: str(v) for k, v in selection[1].items()}
+
+
+    reverse_widgets_str_1 = {v: k for k, v in widgets_str_1.items()}
+
+
+    for key, widget_str in widgets_str_0.items():
+        dic_cat_num["Categorical"].append(key)
+        if widget_str in reverse_widgets_str_1:
+            reverse_widgets_str_1.pop(widget_str) 
+
+
+    for key in reverse_widgets_str_1.values():
+        dic_cat_num["Numerical"].append(key)
 
     keys_to_keep = set(dic_cat_num["Categorical"] + dic_cat_num["Numerical"])
-    masks = {key: value for key, value in mask_ori.items() if key in keys_to_keep} 
+    masks = {key: value for key, value in mask_ori.items() if key in keys_to_keep}
     ###### Prompts要改哦
     masks_length = len(masks.keys())
-    prompts = [prompt] * masks_length 
+    prompts = [prompt] * masks_length
     for c in masks.keys():
         initial_widget = masks[c][0]
         initial_mask_num = masks[c][1]
         initial_image = extract_initial_image(initial_widget, chosen_image_id, initial_mask_num)  # 假设这返回一个字符串
-        initial_image_ids[c] = initial_image 
+        initial_image_ids[c] = initial_image
     category_image_ids = initial_image_ids
 
     category_prompts = make_prompt_for_each_mask(prompts, selection, data_path)
