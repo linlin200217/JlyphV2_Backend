@@ -11,7 +11,10 @@ from openai import OpenAI
 from PIL import Image, ImageDraw
 from typing import Union, List, Dict, Optional, Tuple
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
-
+from diffusers import (
+    StableDiffusionControlNetPipeline,
+    ControlNetModel,
+)
 import os
 from os.path import join, dirname
 from dotenv import load_dotenv
@@ -29,6 +32,21 @@ COLOR_MAP = {
     True: (255, 255, 255),
     False: (39, 78, 19),
 }
+COLOR = ['red',
+         'orange',
+         'yellow',
+         'green',
+         'blue',
+         'indigo',
+         'violet',
+         'purple',
+         'pink',
+         'black',
+         'white',
+         'gray',
+         'brown',
+         'golden',
+         'silver']
 
 DATAPATH = "./data"
 IMAGE_RESOURCE_PATH = "./resources"
@@ -41,6 +59,10 @@ os.makedirs(WEIGHTSPATH, exist_ok=True)
 CHECKPOINT_PATH = os.path.join("weights", "sam_vit_h_4b8939.pth")
 sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
 mask_predictor = SamPredictor(sam)
+
+PIPE_SDCC = StableDiffusionControlNetPipeline.from_pretrained(
+    "runwayml/stable-diffusion-v1-5", controlnet=ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16), torch_dtype=torch.float16
+).to(DEVICE)
 
 def save_image(img: Image.Image, prefix: Optional[str], type: str = "png") -> str:
     img_copy = img.copy()
@@ -203,3 +225,152 @@ def extract_mask_image(widget, image_id:str, mask_refine:int):
   out_outlier_id = save_image(outlier_image, "outlier")
   mask_result = out_mask_id
   return mask_result
+
+
+def make_prompt_for_each_mask(prompts: List[str], cat_num, 
+                                 df: Optional[pd.DataFrame] = None) -> Dict[str, List[Tuple]]:
+    
+    categoricals_numericals = {"Categorical": [], "Numerical": []}
+    first_dict_values = set(cat_num[0].values())
+    second_dict_values = set(cat_num[1].values())
+
+    for key, value in cat_num[0].items():
+        if value in second_dict_values or value in first_dict_values:
+            categoricals_numericals["Categorical"].append(key)
+    for key, value in cat_num[1].items():
+        if value not in first_dict_values:
+            categoricals_numericals["Numerical"].append(key)
+
+    prompts_dict = {}
+    prompt_index = 0
+    
+    for category, items in categoricals_numericals.items():
+        for item in items:
+            if category == "Categorical" and prompt_index < len(prompts):
+                item_duplicated = df[item].drop_duplicates()
+                num = len(item_duplicated)
+
+                colors = random.sample(COLOR, min(num, len(COLOR)))
+                prompt_list = [(f"A {color} {prompts[prompt_index]}", color, value) for value, color in zip(item_duplicated, colors)]
+                prompts_dict[item] = prompt_list
+                prompt_index += 1 
+
+            elif category == "Numerical" and prompt_index < len(prompts):
+                color = random.choice(COLOR)
+                prompt_list = [(f"A {color} {prompts[prompt_index]}", color, item)]
+                prompts_dict[item] = prompt_list
+                prompt_index += 1 
+    if prompt_index != len(prompts):
+        raise ValueError("Not all prompts have been used. Please check the categoricals_numericals dictionary and prompts list for consistency.")
+
+    return prompts_dict
+
+
+def generate_image(prompt: str, image_id: str, image_prefix: Optional[str] = None):
+    img = np.array(get_image_by_id(image_id))
+    low_threshold = 100
+    high_threshold = 200
+    img = cv2.Canny(img, low_threshold, high_threshold)
+    img = img[:, :, None]
+    img = np.concatenate([img, img, img], axis=2)
+    canny_image = Image.fromarray(img).resize((512,512))
+
+    out = PIPE_SDCC(prompt, num_inference_steps=20,
+                    image=canny_image).images[0].resize((512,512))
+    out_image_id = save_image(out, "generate")
+    return out_image_id
+
+
+def generate_images_by_category(category_prompts, category_image_ids):
+    generated_images = {}
+    for category, prompts in category_prompts.items():
+        image_id = category_image_ids[category]  # 获取当前类别对应的image_id
+        out_image_ids = []
+        for prompt, _, _ in prompts:
+            out_image_id = generate_image(prompt, image_id)  # 生成图片并获取图片ID
+            out_image_ids.append(out_image_id)
+        generated_images[category] = out_image_ids
+    return generated_images
+
+
+def generate_image(prompt: str, image_id: str, image_prefix: Optional[str] = None):
+    img = np.array(get_image_by_id(image_id))
+    low_threshold = 100
+    high_threshold = 200
+    img = cv2.Canny(img, low_threshold, high_threshold)
+    img = img[:, :, None]
+    img = np.concatenate([img, img, img], axis=2)
+    canny_image = Image.fromarray(img).resize((512,512))
+
+    out = PIPE_SDCC(prompt, num_inference_steps=20,
+                    image=canny_image).images[0].resize((512,512))
+    out_image_id = save_image(out, "generate")
+    return out_image_id
+  
+def generate_images_by_category(category_prompts, category_image_ids):
+    generated_images = {}
+    for category, prompts in category_prompts.items():
+        image_id = category_image_ids[category]  # 获取当前类别对应的image_id
+        out_image_ids = []
+        for prompt, _, _ in prompts:
+            out_image_id = generate_image(prompt, image_id)  # 生成图片并获取图片ID
+            out_image_ids.append(out_image_id)
+        generated_images[category] = out_image_ids
+    return generated_images
+  
+  ####FORMAL####
+def convert_RGBA_batch(selection, prompt, mask_ori, chosen_image_id, df: Optional[pd.DataFrame] = None):
+    categoricals = []
+    rgba_images_by_category = {}
+    initial_image_ids = {}
+    category_image_ids = {}
+    dic_cat_num = {"Categorical": [], "Numerical": []}
+    first_dict_values = set(selection[0].values())
+    second_dict_values = set(selection[1].values())
+    for key, value in selection[0].items():
+        if value in second_dict_values or value in first_dict_values:
+            dic_cat_num["Categorical"].append(key)
+    for key, value in selection[1].items():
+        if value not in first_dict_values:
+            dic_cat_num["Numerical"].append(key)
+
+    keys_to_keep = set(dic_cat_num["Categorical"] + dic_cat_num["Numerical"])
+    masks = {key: value for key, value in mask_ori.items() if key in keys_to_keep} 
+    ###### Prompts要改哦
+    masks_length = len(masks.keys())
+    prompts = [prompt] * masks_length 
+    for c in masks.keys():
+        initial_widget = masks[c][0]
+        initial_mask_num = masks[c][1]
+        initial_image = extract_initial_image(initial_widget, chosen_image_id, initial_mask_num)  # 假设这返回一个字符串
+        initial_image_ids[c] = initial_image 
+    category_image_ids = initial_image_ids
+
+    category_prompts = make_prompt_for_each_mask(prompts, selection, df)
+    generate_image_ids = generate_images_by_category(category_prompts, category_image_ids)
+
+    for category, ids in generate_image_ids.items():
+        mask_widget = masks[category][0]
+        mask_num = masks[category][1]
+        mask = extract_mask(mask_widget, chosen_image_id, mask_num)
+        mask_np = np.array(mask)
+        mask_8bit = mask_np.astype(np.uint8) * 255
+
+        rgba_image_details = []
+        for idx, image_id in enumerate(ids):
+            new_image = get_image_by_id(image_id)
+            image_np = np.array(new_image)
+            extracted = cv2.bitwise_and(image_np, image_np, mask=mask_8bit)
+            alpha = np.zeros_like(mask_8bit)
+            alpha[mask_np] = 255
+            extracted_rgba = cv2.cvtColor(extracted, cv2.COLOR_BGR2BGRA)
+            extracted_rgba[:, :, 3] = alpha
+            image_rgba = Image.fromarray(extracted_rgba).resize((512, 512))
+            rgba_image_id = save_image(image_rgba, "rgba")
+            prompt_detail = category_prompts[category][idx][2]
+            rgba_image_details.append({'rgba_image_id': rgba_image_id, 'prompt_detail': prompt_detail})
+
+        rgba_images_by_category[category] = rgba_image_details
+
+    return rgba_images_by_category
+
