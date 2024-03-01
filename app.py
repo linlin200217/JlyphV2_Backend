@@ -140,5 +140,5 @@ def get_image(image_id):
     return send_file(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=9005, debug=True)
+    app.run(host='0.0.0.0', port=9012, debug=True)
 

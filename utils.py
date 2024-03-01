@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 # pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
 os.environ['CUDA_HOME'] = '/usr/local/cuda-11.3'
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3"
+os.environ["CUDA_VISIBLE_DEVICES"]="1,2"
 
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -62,7 +62,7 @@ sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVIC
 mask_predictor = SamPredictor(sam)
 
 PIPE_SDCC = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16), torch_dtype=torch.float16
+    "/home/newdisk/Models/stable-diffusion-v1-5", controlnet=ControlNetModel.from_pretrained("/home/newdisk/Models/sd-controlnet-canny", torch_dtype=torch.float16), torch_dtype=torch.float16
 ).to(DEVICE)
 
 def save_image(img: Image.Image, prefix: Optional[str], type: str = "png") -> str:

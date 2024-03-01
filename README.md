@@ -28,5 +28,6 @@ python3.10 -m pip freeze > requirements.txt
 
 Start the Flask app
 ```shell
-python3.10 -m flask --app app run --host=0.0.0.0 --port=9005
+# select free GPU device
+CUDA_VISIBLE_DEVICES=1,2 python3.10 -m flask --app app run --host=0.0.0.0 --port=9005
 ```
