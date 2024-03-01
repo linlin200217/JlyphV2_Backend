@@ -319,7 +319,8 @@ def generate_images_by_category(category_prompts, category_image_ids):
     return generated_images
   
   ####FORMAL####
-def convert_RGBA_batch(selection, prompt, mask_ori, chosen_image_id, df: Optional[pd.DataFrame] = None):
+def convert_RGBA_batch(selection, prompt, mask_ori, chosen_image_id, data_path):
+    df = pd.read_csv(data_path)
     categoricals = []
     rgba_images_by_category = {}
     initial_image_ids = {}
