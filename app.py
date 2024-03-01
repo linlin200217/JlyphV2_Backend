@@ -82,17 +82,13 @@ async def generate_element():
     rgba_images_by_category:dic
     }
     """
-    if request.method == 'POST':
-        f = request.files['file']
-        file_path = os.path.join(DATAPATH, secure_filename(f.filename))
-        f.save(file_path)
-        data = request.json
-        prompt = data.get("prompt")
-        mask_forall = data.get("mask_forall")
-        chosen_image_id = data.get("chosen_image_id")
-        rgba_images_by_category = convert_RGBA_batch(prompt, mask_forall, chosen_image_id, file_path)
-        return jsonify({"rgba_images_by_category": rgba_images_by_category})
-    
+
+    data = request.json
+    prompt = data.get("prompt")
+    mask_forall = data.get("mask_forall")
+    chosen_image_id = data.get("chosen_image_id")
+    rgba_images_by_category = convert_RGBA_batch(prompt, mask_forall, chosen_image_id)
+    return jsonify({"rgba_images_by_category": rgba_images_by_category})
     return None
 
 @app.route("/regenerate", methods=["POST"])
