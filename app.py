@@ -112,6 +112,11 @@ def regenerate():
         re_generate_rgba_id : str
     }
     """
+    data = request.json
+    image_id = data.get("image_id")
+    mask = data.get("mask")
+    prompt = data.get("prompt")
+    whole_prompt = data.get("whole_prompt")
     re_generate_rgba_id = regenerate_rgb(image_id, mask, prompt, whole_prompt)
     return jsonify({"re_generate_rgba_id": re_generate_rgba_id})
 

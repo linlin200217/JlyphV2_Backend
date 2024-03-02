@@ -405,12 +405,12 @@ def convert_RGBA(image_id, mask):
     return rgba_image_id
 
 def regenerate_rgb(image_id: str, mask, prompt: Optional[str] = None, whole_prompt: Optional[str] = None):
-    mask_let_transformed = {mask["Colname"]: [mask["widget"], mask["Refine_num"]]}
-    re_generate_image_id = regenerate_wholeimage(image_id, prompt, whole_prompt)
+    mask_let_transformed = {mask["Colname"]: [mask["Widget"], mask["Refine_num"]]}
     values = [*mask_let_transformed.values()]
     mask_wid = values[0][0]
     mask_num = values[0][1]
+    mask_ini = extract_initial_image(mask_wid, image_id, mask_num)
+    re_generate_image_id = regenerate_wholeimage(mask_ini, prompt, whole_prompt)
     mask_re = extract_mask(mask_wid, image_id, mask_num)
     re_generate_rgba_id = convert_RGBA(re_generate_image_id, mask_re)
-    return re_generate_rgba_id 
-
+    return re_generate_rgba_id
