@@ -414,3 +414,63 @@ def regenerate_rgb(image_id: str, mask, prompt: Optional[str] = None, whole_prom
     mask_re = extract_mask(mask_wid, image_id, mask_num)
     re_generate_rgba_id = convert_RGBA(re_generate_image_id, mask_re)
     return re_generate_rgba_id
+
+def are_widgets_equal(widget_a, widget_b):
+    return widget_a['x'] == widget_b['x'] and \
+           widget_a['y'] == widget_b['y'] and \
+           widget_a['width'] == widget_b['width'] and \
+           widget_a['height'] == widget_b['height']
+
+def Extract_Numerical_dic(dic_array):
+    processed = []
+    widget_seen = {}
+
+    for entry in dic_array:
+        widget = tuple(entry['widget'].items()) 
+        if widget in widget_seen:
+            if entry['Class'] == 'Numerical':
+                processed = [e for e in processed if not are_widgets_equal(e['widget'], entry['widget'])]
+                processed.append(entry)
+        else:
+            widget_seen[widget] = True
+            processed.append(entry)
+    return processed
+
+def extract_outlier_image(widget, image_id:str, mask_refine:int):
+  image_bgr = cv2.imread(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
+  image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+  mask = extract_mask(widget, image_id, mask_refine)
+  width = len(mask)
+  height = len(mask)
+
+  outlier_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+  draw = ImageDraw.Draw(outlier_image)
+  for y in range(height):
+    for x in range(width):
+        if mask[y][x]:
+            pixel_color = (0, 0, 0, 0)
+            if (
+                x == 0
+                or x == width - 1
+                or y == 0
+                or y == height - 1
+                or not mask[y - 1][x]
+                or not mask[y + 1][x]
+                or not mask[y][x - 1]
+                or not mask[y][x + 1]
+            ):
+                for i in range(15):
+                    if x + i < width:
+                        draw.point((x + i, y), fill=(39, 78, 19))
+  outlier_image = outlier_image.resize((512,512))
+  out_outlier_id = save_image(outlier_image, "outlier")
+  return out_outlier_id
+
+def find_outlier_forexample(image_id, dic_array):
+    for item in Extract_Numerical_dic(dic_array):
+        widget = item['widget']
+        refine_num = item['Refine_num']
+        outlier_id = extract_outlier_image(widget,image_id,refine_num)
+        item['outlier_id'] = outlier_id
+    
+    return Extract_Numerical_dic(dic_array)
