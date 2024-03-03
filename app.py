@@ -1,7 +1,8 @@
 import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-from utils import DATAPATH, IMAGE_RESOURCE_PATH, COLOR, data_process, image_recommendation, extract_mask_image, convert_RGBA_batch, regenerate_rgb
+from utils import DATAPATH, IMAGE_RESOURCE_PATH, COLOR, data_process, image_recommendation, extract_mask_image, convert_RGBA_batch, \
+regenerate_rgb, defalt_layer_forexample
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -93,6 +94,36 @@ async def generate_element():
     chosen_image_id = data.get("chosen_image_id")
     rgba_images_by_category = convert_RGBA_batch(prompt, mask_forall, chosen_image_id, data_file_path)
     return jsonify({"rgba_images_by_category": rgba_images_by_category})
+    return None
+
+async def generate_numerical_element():
+    """
+    INPUT DATA{
+        mask_forall:{
+            "Colname": str,
+            "Widget": dic,
+            "Refine_num": num,
+            "Class": str("Categorical"/"Numerical")
+        }
+        chosen_image_id: str
+    }
+    RETURN DATA{
+    [{
+        "Colname": str,
+        "Widget": dic,
+        "Refine_num": num,
+        "Class": str("Categorical"/"Numerical")
+        "outlier_id": str,
+        "Layer": int
+    },]
+    }
+    """
+
+    data = request.json
+    mask_forall = data.get("mask_forall")
+    chosen_image_id = data.get("chosen_image_id")
+    defalt_layer_forexample = defalt_layer_forexample(chosen_image_id, mask_forall)
+    return jsonify({"defalt_layer_forexample": defalt_layer_forexample})
     return None
 
 @app.route("/regenerate", methods=["POST"])
