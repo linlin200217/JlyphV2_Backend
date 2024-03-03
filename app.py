@@ -96,6 +96,7 @@ async def generate_element():
     return jsonify({"rgba_images_by_category": rgba_images_by_category})
     return None
 
+@app.route("/generate_numerical_element", methods=["POST"])
 async def generate_numerical_element():
     """
     INPUT DATA{
