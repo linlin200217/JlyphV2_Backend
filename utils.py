@@ -474,3 +474,28 @@ def find_outlier_forexample(image_id, dic_array):
         item['outlier_id'] = outlier_id
     
     return Extract_Numerical_dic(dic_array)
+
+def defalt_layer_forexample(image_id, dic_array):
+  dic_outlier = find_outlier_forexample(image_id, dic_array)
+  grouped_by_y = {}
+  for item in dic_outlier:
+      y_key = item["widget"]["y"]
+      if y_key not in grouped_by_y:
+          grouped_by_y[y_key] = []
+      grouped_by_y[y_key].append(item)
+  sorted_items = []
+  for items in grouped_by_y.values():
+      sorted_items.extend(sorted(items, key=lambda x: -(x["widget"]["y"] + x["widget"]["width"])))
+
+
+  current_layer = 1
+  previous_item = None
+  for item in sorted_items:
+      if previous_item and (item["widget"]["y"] != previous_item["widget"]["y"] or (item["widget"]["y"] + item["widget"]["width"] != previous_item["widget"]["y"] + previous_item["widget"]["width"])):
+          current_layer += 1
+      item["Layer"] = current_layer
+      previous_item = item
+
+
+  sorted_dic_array = sorted(dic_outlier, key=lambda x: x["Layer"])
+  return sorted_dic_array
