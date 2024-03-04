@@ -499,3 +499,171 @@ def defalt_layer_forexample(image_id, dic_array):
 
   sorted_dic_array = sorted(dic_outlier, key=lambda x: x["Layer"])
   return sorted_dic_array
+
+
+def determine_form(dic_list):
+    unique_forms = set()
+    for dic in dic_list:
+        form = dic.get('Form')
+        if form: 
+            unique_forms.add(form)
+    combinations = {
+        frozenset(['Size']): "Size",
+        frozenset(['Number_Vertical']): "Number_Vertical",
+        frozenset(['Number_Horizontal']): "Number_Horizontal",
+        frozenset(['Number_Path']): "Number_Path",
+        frozenset(['Size', 'Number_Vertical']): "Size_Number_Vertical",
+        frozenset(['Size', 'Number_Horizontal']): "Size_Number_Horizontal",
+        frozenset(['Size', 'Number_Path']): "Size_Number_Path",
+    }
+    return combinations.get(frozenset(unique_forms), "Undefined Combination")
+
+def vertical_position(dic_list):
+    sorted_dic_list = sorted(dic_list, key=lambda x: (x['widget']['y'], -(x['widget']['y'] - x['widget']['height'])), reverse=True)
+    for index, dic in enumerate(sorted_dic_list, start=1):
+        dic['Position'] = index
+    return sorted_dic_list
+
+def horizontal_position(dic_list):
+    sorted_dic_list = sorted(
+        dic_list, 
+        key=lambda x: (x['widget']['x'], -(x['widget']['x'] + x['widget']['width']))
+    )
+    for index, dic in enumerate(sorted_dic_list, start=1):
+        dic['Position'] = index
+    
+    return sorted_dic_list
+
+def form_with_position(dic_list):
+    form = determine_form(dic_list)
+    if form in ["Size", "Number_Vertical", "Number_Path", "Size_Number_Vertical", "Size_Number_Path"]:
+        return vertical_position(dic_list)
+    elif form in ["Number_Horizontal", "Size_Number_Horizontal"]:
+        return horizontal_position(dic_list)
+    else:
+        return [dic_list]
+    
+def get_contour_center(contour):
+    """计算轮廓的中心坐标"""
+    M = cv2.moments(contour)
+    if M["m00"] != 0:
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        return (cX, cY)
+    return None
+
+def pre_dic_forexample(dic_array):
+    dic_array_update = form_with_position(dic_array)
+    summary_dic = {
+        "move": [],
+        "num": [],
+        "gap": [],
+        "direction": []
+    }
+
+    sorted_dic_list = sorted(dic_array_update, key=lambda x: x['Position'])
+
+    for dic in sorted_dic_list:
+        form = dic.get('Form')
+        layer = dic['Position']
+        gap = dic.get('Gap', 0)  
+        
+        if form in ["Number_Vertical", "Number_Horizontal"]:
+            direction = "vertical" if form == "Number_Vertical" else "horizontal"
+            summary_dic["move"].append(layer - 1)
+            summary_dic["num"].append(2)  
+            summary_dic["gap"].append(gap)
+            summary_dic["direction"].append(direction)
+
+    return summary_dic
+
+def dic_forexample(dic_array):
+  predic = pre_dic_forexample(dic_array)
+  move = predic["move"]
+  num = predic["num"]
+  gap = predic["gap"]
+  directions = predic["direction"]
+
+  dic = {}
+  num = [1 if i not in move else num[move.index(i)] for i in range(len(dic_array))]
+  gap = [0 if i not in move else gap[move.index(i)] for i in range(len(dic_array))]
+  directions = ["" if i not in move else directions[move.index(i)] for i in range(len(dic_array))]
+
+  x = 0
+  y = 0
+
+  for slice, (count, _gap, direction) in enumerate(zip(num, gap, directions)):
+    dic[slice] = [[x,y]]
+    for c in range(1, count):
+        positions = dic.get(slice, [[x, y]])
+        positions.append([x, y])
+        if direction == "horizontal":
+            x -=- _gap
+            positions[-1][0] = x
+        elif direction == "vertical":
+            y -=- _gap
+            positions[-1][1] = y
+        dic[slice] = positions
+
+  return dic
+
+def Set_Size_Num_forexample(image_id,dic_array):
+  images = []
+  masks = []
+  order = []
+  scale_factors = []
+  processed_images = []
+  processed_masks = []
+  image_id = image_id
+  sorted_data = sorted(form_with_position(dic_array), key=lambda x: x['Position'])
+  dic_for_pos = dic_forexample(dic_array)
+  for item in sorted_data:
+    images.append(item['outlier_id'])
+    masks.append(extract_mask(item["widget"],image_id,item["Refine_num"]))
+    order.append(item['Layer'])
+    scale_factors.append(1.2 if item['Form'] == 'Size' else 1)
+  canvas_size = (512,512,3)
+  canvas = np.ones(canvas_size, dtype=np.uint8)*255
+  for image_id, mask, scale_factor, (key, positions) in zip(images, masks, scale_factors, dic_for_pos.items()):
+    ori_image = get_image_by_id(image_id)
+    ori_image_rgb = np.array(ori_image)
+    image = cv2.cvtColor(ori_image_rgb, cv2.COLOR_RGB2BGR)
+    original_mask = mask.astype(np.uint8)
+
+    contours, _ = cv2.findContours(original_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        contour_center = get_contour_center(largest_contour)
+
+        new_width, new_height = int(image.shape[1] * scale_factor), int(image.shape[0] * scale_factor)
+        scaled_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        scaled_mask = cv2.resize(original_mask, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
+
+        new_contours, _ = cv2.findContours(scaled_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        new_contour_center = get_contour_center(max(new_contours, key=cv2.contourArea))
+
+        center_dx, center_dy = new_contour_center[0] - contour_center[0], new_contour_center[1] - contour_center[1]
+        M = np.float32([[1, 0, -center_dx], [0, 1, -center_dy]])
+
+        corrected_scaled_mask = cv2.warpAffine(scaled_mask, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        corrected_scaled_image = cv2.warpAffine(scaled_image, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+
+        for dx, dy in positions:
+            M = np.float32([[1, 0, dx], [0, 1, -dy]])
+            translated_mask = cv2.warpAffine(corrected_scaled_mask, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+            translated_image = cv2.warpAffine(corrected_scaled_image, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+            
+
+            processed_images.append((key, translated_image, translated_mask))
+  for layer in order:
+    layer_index = layer - 1 
+    for item in processed_images:
+        if item[0] == layer_index:
+            image, mask = item[1], item[2]
+
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+            canvas[mask > 0] = image_rgb[mask > 0]
+
+  final_image = Image.fromarray(canvas) 
+  size_num_id = save_image(final_image, "size_num")
+  return size_num_id
