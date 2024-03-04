@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from utils import DATAPATH, IMAGE_RESOURCE_PATH, COLOR, data_process, image_recommendation, extract_mask_image, convert_RGBA_batch, \
-regenerate_rgb, defalt_layer_forexample
+regenerate_rgb, defalt_layer_forexample, Set_Size_Num_forexample
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -125,6 +125,35 @@ async def generate_numerical_element():
     chosen_image_id = data.get("chosen_image_id")
     defalt_layer_forexample = defalt_layer_forexample(chosen_image_id, mask_forall)
     return jsonify({"defalt_layer_forexample": defalt_layer_forexample})
+    return None
+
+@app.route("/generate_example", methods=["POST"])
+async def generate_example():
+    """
+    INPUT DATA{
+        dic_array:{
+            "Colname": str,
+            "widget": dic,
+            "Refine_num": num,
+            "Class": str("Categorical"/"Numerical"),
+            "outlier_id": str,
+            "Layer": int,
+            "Form": "Size"/'Number_Vertical','Number_Horizontal','Number_Path',None,
+            "Gap": int,None,
+        }
+        image_id: str
+    }
+    RETURN DATA{
+    generate_image_id: str
+    }
+    """
+    
+
+    data = request.json
+    dic_array = data.get("dic_array")
+    image_id = data.get("image_id")
+    example = Set_Size_Num_forexample(image_id,dic_array)
+    return jsonify({"example": example})
     return None
 
 @app.route("/regenerate", methods=["POST"])
