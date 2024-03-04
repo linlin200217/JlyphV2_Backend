@@ -426,10 +426,10 @@ def Extract_Numerical_dic(dic_array):
     widget_seen = {}
 
     for entry in dic_array:
-        widget = tuple(entry['widget'].items()) 
+        widget = tuple(entry['Widget'].items()) 
         if widget in widget_seen:
             if entry['Class'] == 'Numerical':
-                processed = [e for e in processed if not are_widgets_equal(e['widget'], entry['widget'])]
+                processed = [e for e in processed if not are_widgets_equal(e['Widget'], entry['Widget'])]
                 processed.append(entry)
         else:
             widget_seen[widget] = True
@@ -468,7 +468,7 @@ def extract_outlier_image(widget, image_id:str, mask_refine:int):
 
 def find_outlier_forexample(image_id, dic_array):
     for item in Extract_Numerical_dic(dic_array):
-        widget = item['widget']
+        widget = item['Widget']
         refine_num = item['Refine_num']
         outlier_id = extract_outlier_image(widget,image_id,refine_num)
         item['outlier_id'] = outlier_id
@@ -479,19 +479,19 @@ def defalt_layer_forexample(image_id, dic_array):
   dic_outlier = find_outlier_forexample(image_id, dic_array)
   grouped_by_y = {}
   for item in dic_outlier:
-      y_key = item["widget"]["y"]
+      y_key = item["Widget"]["y"]
       if y_key not in grouped_by_y:
           grouped_by_y[y_key] = []
       grouped_by_y[y_key].append(item)
   sorted_items = []
   for items in grouped_by_y.values():
-      sorted_items.extend(sorted(items, key=lambda x: -(x["widget"]["y"] + x["widget"]["width"])))
+      sorted_items.extend(sorted(items, key=lambda x: -(x["Widget"]["y"] + x["Widget"]["width"])))
 
 
   current_layer = 1
   previous_item = None
   for item in sorted_items:
-      if previous_item and (item["widget"]["y"] != previous_item["widget"]["y"] or (item["widget"]["y"] + item["widget"]["width"] != previous_item["widget"]["y"] + previous_item["widget"]["width"])):
+      if previous_item and (item["Widget"]["y"] != previous_item["Widget"]["y"] or (item["Widget"]["y"] + item["Widget"]["width"] != previous_item["Widget"]["y"] + previous_item["Widget"]["width"])):
           current_layer += 1
       item["Layer"] = current_layer
       previous_item = item
