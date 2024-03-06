@@ -623,7 +623,7 @@ def Set_Size_Num_forexample(image_id,dic_array):
   dic_for_pos = dic_forexample(dic_array)
   for item in sorted_data:
     images.append(item['outlier_id'])
-    masks.append(extract_mask(item["widget"],image_id,item["Refine_num"]))
+    masks.append(item['mask_bool'])
     order.append(item['Layer'])
     scale_factors.append(1.2 if item['Form'] == 'Size' else 1)
   canvas_size = (512,512,3)
@@ -669,5 +669,5 @@ def Set_Size_Num_forexample(image_id,dic_array):
             canvas[mask > 0] = image_rgb[mask > 0]
 
   final_image = Image.fromarray(canvas) 
-  size_num_id = save_image(final_image, "size_num")
+  size_num_id = save_image(final_image, "Numerical")
   return size_num_id
