@@ -115,7 +115,8 @@ async def generate_numerical_element():
         "Refine_num": num,
         "Class": str("Categorical"/"Numerical")
         "outlier_id": str,
-        "Layer": int
+        "Layer": int,
+        "mask_bool": array,
     },]
     }
     """
@@ -137,6 +138,7 @@ async def generate_example():
             "Refine_num": num,
             "Class": str("Categorical"/"Numerical"),
             "outlier_id": str,
+            "mask_bool": array,
             "Layer": int,
             "Form": "Size"/'Number_Vertical','Number_Horizontal','Number_Path',None,
             "Gap": int,None,
