@@ -671,3 +671,122 @@ def Set_Size_Num_forexample(image_id,dic_array):
   final_image = Image.fromarray(canvas) 
   size_num_id = save_image(final_image, "Numerical")
   return size_num_id
+
+
+
+def transform_NumpyToBoolean(dic):
+    bool_dic = {}
+    for key, mask in dic.items():
+        bool_mask = mask != 0
+        bool_dic[key] = bool_mask
+    return bool_dic
+
+def extract_colnameTopath(masks,dic_array):
+  colname_to_mask = {}
+  for index, dic in enumerate(dic_array):
+      colname = dic['Colname'] 
+      mask = masks[index]  
+      colname_to_mask[colname] = mask
+  return colname_to_mask 
+
+def quadratic_curve(x, a, b, c):
+    return a * x**2 + b * x + c
+def extract_smoothed_path(mask):
+    points = np.column_stack(np.where(mask))
+    params, _ = curve_fit(quadratic_curve, points[:, 1], points[:, 0])
+    x_fit = np.linspace(np.min(points[:, 1]), np.max(points[:, 1]), 100)
+    y_fit = quadratic_curve(x_fit, *params)
+    path_image = np.zeros_like(mask, dtype=np.uint8)
+    path_coords = np.column_stack((y_fit, x_fit)).astype(int)
+    for x, y in path_coords:
+        if 0 <= x < mask.shape[0] and 0 <= y < mask.shape[1]:
+            path_image[x, y] = 255
+    path_array = np.zeros_like(mask, dtype=bool)
+    path_array[np.where(path_image == 255)] = True
+    return path_array
+
+def load_image_bgra(image_id):
+    """Load an image from a path and convert it to a BGRA NumPy array."""
+    with get_image_by_id(image_id) as img:
+        rgba_image = img.convert('RGBA')
+        rgba_array = np.array(rgba_image)
+        bgra_array = rgba_array[..., [2, 1, 0, 3]]
+        return bgra_array
+def paste_with_alpha_bgra(target, source, start_x, start_y):
+    """Manually paste a BGRA image onto another BGR image considering alpha transparency."""
+    for y in range(source.shape[0]):
+        for x in range(source.shape[1]):
+            sy = start_y + y
+            sx = start_x + x
+            if 0 <= sy < target.shape[0] and 0 <= sx < target.shape[1]:
+                alpha = source[y, x, 3] / 255.0
+                if alpha > 0:
+                    target[sy, sx, :3] = (1 - alpha) * target[sy, sx, :3] + alpha * source[y, x, :3]
+def find_bottom_baseline_bgra(extracted):
+    """Find the bottommost non-transparent pixel row in the extracted BGRA image."""
+    for i in range(extracted.shape[0] - 1, -1, -1):
+        if np.any(extracted[i, :, 3] != 0):
+            return i
+    return None
+
+def find_top_baseline_bgra(extracted):
+    """Find the topmost non-transparent pixel row in the extracted BGRA image."""
+    for i in range(extracted.shape[0]):
+        if np.any(extracted[i, :, 3] != 0):
+            return i
+    return None
+
+def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
+    image_ids = []
+    masks = []
+    gaps = []
+    nums = []
+    directons = []
+    masks_array = transform_NumpyToBoolean(extract_colnameTopath(Set_Size_Num_forexample(image_id,dic_array)[0],dic_array))
+
+    for item in dic_array:
+      if 'Path' in (item.get('Form') or ''):
+        image_ids.append(item['outlier_id'])
+        gaps.append(item.get('Gap', None))
+        if item['Path_Col'] and item['Path_Col'] in masks_array:
+            masks.append(masks_array[item['Path_Col']])
+    nums = [2] * len(image_ids)
+    directions = ["bottom"] * len(image_ids)
+    canvas_id = Set_Size_Num_forexample(image_id,dic_array)[1]
+
+    canvas_pil = get_image_by_id(canvas_id)
+    canvas_rgb = np.array(canvas_pil)
+    canvas_bgr = canvas_rgb[:, :, ::-1]
+    for mask, num, image_id, gap, direction in zip(masks, nums, image_ids, gaps, directions):
+        points = np.argwhere(extract_smoothed_path(mask))
+        if len(points) < num:
+            raise ValueError("Not enough points on the curve to segment into n parts")
+
+        segmented_points = points[np.round(np.linspace(0, len(points) - 1, num)).astype(int)]
+        extracted = load_image_bgra(image_id)
+
+        if direction == 'top':
+            baseline = find_bottom_baseline_bgra(extracted)
+            gap_sign = -1
+        elif direction == 'bottom':
+            baseline = find_top_baseline_bgra(extracted)
+            gap_sign = 1
+        else:
+            raise ValueError("Invalid direction. Must be 'top' or 'bottom'.")
+
+        if baseline is not None:
+            for point in segmented_points:
+                top_left_x = point[1] - extracted.shape[1] // 2
+                top_left_y = point[0] - baseline + gap_sign * gap
+                paste_with_alpha_bgra(canvas_bgr, extracted, top_left_x, top_left_y)
+    final_rgb = canvas_bgr[:, :, ::-1]
+    final_image_pil = Image.fromarray(final_rgb)
+    numerical_path_image_id = save_image(final_image_pil, "Numerical")
+    return numerical_path_image_id
+
+def final_output_image(image_id, dic_array):
+  form_combination = determine_form(dic_array)
+  if form_combination in ["Number_Vertical", "Number_Horizontal", "Size_Number_Vertical", "Size_Number_Horizontal", "Size"]:
+    return Set_Size_Num_forexample(image_id,dic_array)[1]
+  elif form_combination in ["Number_Path", "Size_Number_Path"]:
+    return segment_curve_and_paste_extracted_bgra(image_id, dic_array)
