@@ -502,7 +502,7 @@ def defalt_layer_forexample(image_id, dic_array):
   for dic in sorted_dic_array:
     widget = dic['Widget']
     refine_num = dic['Refine_num']
-    dic['mask_bool'] = extract_mask(widget, image_id, refine_num)
+    dic['mask_bool'] = extract_mask(widget, image_id, refine_num).astype(np.uint8)
   return sorted_dic_array
 
 
@@ -792,8 +792,16 @@ def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
     numerical_path_image_id = save_image(final_image_pil, "Numerical")
     return numerical_path_image_id
 
+def Num_To_Boolean(dic_array):
 
-def final_output_image(image_id, dic_array):
+  for dic in dic_array:
+      dic['mask_bool'] = dic['mask_bool'].astype(bool)
+
+  return dic_array
+
+
+def final_output_image(image_id, dic_array_):
+  dic_array = Num_To_Boolean(dic_array_)
   form_combination = determine_form(dic_array)
   if form_combination in ["Number_Vertical", "Number_Horizontal", "Size_Number_Vertical", "Size_Number_Horizontal", "Size"]:
     return Set_Size_Num_forexample(image_id,dic_array)[1]
