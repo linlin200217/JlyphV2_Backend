@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from utils import DATAPATH, IMAGE_RESOURCE_PATH, COLOR, data_process, image_recommendation, extract_mask_image, convert_RGBA_batch, \
-regenerate_rgb, defalt_layer_forexample, Set_Size_Num_forexample
+regenerate_rgb, defalt_layer_forexample, final_output_image
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -154,7 +154,7 @@ async def generate_example():
     data = request.json
     dic_array = data.get("dic_array")
     image_id = data.get("image_id")
-    example = Set_Size_Num_forexample(image_id,dic_array)
+    example = final_output_image(image_id,dic_array)
     return jsonify({"example": example})
     return None
 
