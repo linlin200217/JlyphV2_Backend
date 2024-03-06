@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from io import BytesIO
 from openai import OpenAI
+from scipy.optimize import curve_fit
 from PIL import Image, ImageDraw
 from typing import Union, List, Dict, Optional, Tuple
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
