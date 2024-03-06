@@ -498,6 +498,10 @@ def defalt_layer_forexample(image_id, dic_array):
 
 
   sorted_dic_array = sorted(dic_outlier, key=lambda x: x["Layer"])
+  for dic in sorted_dic_array:
+    widget = dic['Widget']
+    refine_num = dic['Refine_num']
+    dic['mask_bool'] = extract_mask(widget, image_id, refine_num)
   return sorted_dic_array
 
 
