@@ -116,7 +116,7 @@ async def generate_numerical_element():
         "Class": str("Categorical"/"Numerical")
         "outlier_id": str,
         "Layer": int,
-        "mask_bool": array,
+        "mask_bool": array
     },]
     }
     """
@@ -125,6 +125,7 @@ async def generate_numerical_element():
     mask_forall = data.get("mask_forall")
     chosen_image_id = data.get("chosen_image_id")
     defalt_layer = defalt_layer_forexample(chosen_image_id, mask_forall)
+    print(defalt_layer)
     return jsonify({"defalt_layer_forexample": defalt_layer})
     return None
 
@@ -149,8 +150,6 @@ async def generate_example():
     generate_image_id: str
     }
     """
-    
-
     data = request.json
     dic_array = data.get("dic_array")
     image_id = data.get("image_id")
@@ -208,5 +207,5 @@ def get_image(image_id):
     return send_file(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=9012, debug=True)
+    app.run(host='0.0.0.0', port=9009, debug=True)
 

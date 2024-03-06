@@ -793,10 +793,8 @@ def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
     return numerical_path_image_id
 
 def Num_To_Boolean(dic_array):
-
   for dic in dic_array:
       dic['mask_bool'] = dic['mask_bool'].astype(bool)
-
   return dic_array
 
 
@@ -807,3 +805,4 @@ def final_output_image(image_id, dic_array_):
     return Set_Size_Num_forexample(image_id,dic_array)[1]
   elif form_combination in ["Number_Path", "Size_Number_Path"]:
     return segment_curve_and_paste_extracted_bgra(image_id, dic_array)
+
