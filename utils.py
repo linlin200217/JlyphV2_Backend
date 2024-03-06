@@ -617,6 +617,7 @@ def Set_Size_Num_forexample(image_id,dic_array):
   masks = []
   order = []
   scale_factors = []
+  corrected_masks = []
   processed_images = []
   processed_masks = []
   image_id = image_id
@@ -651,6 +652,7 @@ def Set_Size_Num_forexample(image_id,dic_array):
         M = np.float32([[1, 0, -center_dx], [0, 1, -center_dy]])
 
         corrected_scaled_mask = cv2.warpAffine(scaled_mask, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        corrected_masks.append(corrected_scaled_mask)
         corrected_scaled_image = cv2.warpAffine(scaled_image, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
         for dx, dy in positions:
@@ -671,7 +673,7 @@ def Set_Size_Num_forexample(image_id,dic_array):
 
   final_image = Image.fromarray(canvas) 
   size_num_id = save_image(final_image, "Numerical")
-  return size_num_id
+  return corrected_masks, size_num_id
 
 
 
@@ -692,6 +694,7 @@ def extract_colnameTopath(masks,dic_array):
 
 def quadratic_curve(x, a, b, c):
     return a * x**2 + b * x + c
+    
 def extract_smoothed_path(mask):
     points = np.column_stack(np.where(mask))
     params, _ = curve_fit(quadratic_curve, points[:, 1], points[:, 0])
@@ -713,6 +716,7 @@ def load_image_bgra(image_id):
         rgba_array = np.array(rgba_image)
         bgra_array = rgba_array[..., [2, 1, 0, 3]]
         return bgra_array
+        
 def paste_with_alpha_bgra(target, source, start_x, start_y):
     """Manually paste a BGRA image onto another BGR image considering alpha transparency."""
     for y in range(source.shape[0]):
@@ -723,6 +727,7 @@ def paste_with_alpha_bgra(target, source, start_x, start_y):
                 alpha = source[y, x, 3] / 255.0
                 if alpha > 0:
                     target[sy, sx, :3] = (1 - alpha) * target[sy, sx, :3] + alpha * source[y, x, :3]
+                    
 def find_bottom_baseline_bgra(extracted):
     """Find the bottommost non-transparent pixel row in the extracted BGRA image."""
     for i in range(extracted.shape[0] - 1, -1, -1):
@@ -730,12 +735,14 @@ def find_bottom_baseline_bgra(extracted):
             return i
     return None
 
+
 def find_top_baseline_bgra(extracted):
     """Find the topmost non-transparent pixel row in the extracted BGRA image."""
     for i in range(extracted.shape[0]):
         if np.any(extracted[i, :, 3] != 0):
             return i
     return None
+
 
 def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
     image_ids = []
@@ -784,6 +791,7 @@ def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
     final_image_pil = Image.fromarray(final_rgb)
     numerical_path_image_id = save_image(final_image_pil, "Numerical")
     return numerical_path_image_id
+
 
 def final_output_image(image_id, dic_array):
   form_combination = determine_form(dic_array)
