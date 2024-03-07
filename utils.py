@@ -478,53 +478,24 @@ def find_outlier_forexample(image_id, dic_array):
     return Extract_Numerical_dic(dic_array)
 
 def defalt_layer_forexample(image_id, dic_array):
-<<<<<<< Updated upstream
     dic_outlier = find_outlier_forexample(image_id, dic_array)
-    sorted_by_y_then_height = sorted(dic_outlier, key=lambda x: (-x["Widget"]["y"], -(x["Widget"]["y"] + x["Widget"]["height"])))
+    
+    sorted_items = sorted(dic_outlier, key=lambda x: (-(x["widget"]["y"] + x["widget"]["height"]), x["widget"]["y"]))
     
     current_layer = 1
     previous_item = None
-    for item in sorted_by_y_then_height:
-        if previous_item and (item["Widget"]["y"] != previous_item["Widget"]["y"] or 
-                              (item["Widget"]["y"] + item["Widget"]["height"] != previous_item["Widget"]["y"] + previous_item["Widget"]["height"])):
+    for item in sorted_items:
+        if previous_item and not (item["widget"]["y"] + item["widget"]["height"] == previous_item["widget"]["y"] + previous_item["widget"]["height"] and item["widget"]["y"] == previous_item["widget"]["y"]):
             current_layer += 1
         item["Layer"] = current_layer
         previous_item = item
 
-    sorted_dic_array = sorted(sorted_by_y_then_height, key=lambda x: x["Layer"])
+    sorted_dic_array = sorted(sorted_items, key=lambda x: x["Layer"])
+
     for dic in sorted_dic_array:
         widget = dic['Widget']
         refine_num = dic['Refine_num']
-        dic['mask_bool'] = extract_mask(widget, image_id, refine_num).astype(np.uint8)
-=======
-  dic_outlier = find_outlier_forexample(image_id, dic_array)
-  grouped_by_y = {}
-  for item in dic_outlier:
-      y_key = item["Widget"]["y"]
-      if y_key not in grouped_by_y:
-          grouped_by_y[y_key] = []
-      grouped_by_y[y_key].append(item)
-  print(grouped_by_y)
-  sorted_items = []
-  for items in grouped_by_y.values():
-      sorted_items.extend(sorted(items, key=lambda x: -(x["Widget"]["y"] + x["Widget"]["width"])))
-  print(sorted_items)
-
-  current_layer = 1
-  previous_item = None
-  for item in sorted_items:
-      if previous_item and (item["Widget"]["y"] != previous_item["Widget"]["y"] or (item["Widget"]["y"] + item["Widget"]["width"] != previous_item["Widget"]["y"] + previous_item["Widget"]["width"])):
-          current_layer += 1
-      item["Layer"] = current_layer
-      previous_item = item
-
-
-  sorted_dic_array = sorted(dic_outlier, key=lambda x: x["Layer"])
-  for dic in sorted_dic_array:
-    widget = dic['Widget']
-    refine_num = dic['Refine_num']
-    dic['mask_bool'] = extract_mask(widget, image_id, refine_num).astype(np.uint8).tolist()
->>>>>>> Stashed changes
+        dic['mask_bool'] = extract_mask(widget, image_id, refine_num).astype(np.uint8).tolist()
   return sorted_dic_array
 
 
