@@ -480,12 +480,12 @@ def find_outlier_forexample(image_id, dic_array):
 def defalt_layer_forexample(image_id, dic_array):
     dic_outlier = find_outlier_forexample(image_id, dic_array)
     
-    sorted_items = sorted(dic_outlier, key=lambda x: (-(x["widget"]["y"] + x["widget"]["height"]), x["widget"]["y"]))
+    sorted_items = sorted(dic_outlier, key=lambda x: (-(x["Widget"]["y"] + x["Widget"]["height"]), x["Widget"]["y"]))
     
     current_layer = 1
     previous_item = None
     for item in sorted_items:
-        if previous_item and not (item["widget"]["y"] + item["widget"]["height"] == previous_item["widget"]["y"] + previous_item["widget"]["height"] and item["widget"]["y"] == previous_item["widget"]["y"]):
+        if previous_item and not (item["Widget"]["y"] + item["Widget"]["height"] == previous_item["Widget"]["y"] + previous_item["Widget"]["height"] and item["Widget"]["y"] == previous_item["Widget"]["y"]):
             current_layer += 1
         item["Layer"] = current_layer
         previous_item = item
