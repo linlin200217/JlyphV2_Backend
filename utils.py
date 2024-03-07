@@ -496,7 +496,7 @@ def defalt_layer_forexample(image_id, dic_array):
         widget = dic['Widget']
         refine_num = dic['Refine_num']
         dic['mask_bool'] = extract_mask(widget, image_id, refine_num).astype(np.uint8).tolist()
-  return sorted_dic_array
+    return sorted_dic_array
 
 
 def determine_form(dic_list):
