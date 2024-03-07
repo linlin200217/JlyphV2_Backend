@@ -125,7 +125,6 @@ async def generate_numerical_element():
     mask_forall = data.get("mask_forall")
     chosen_image_id = data.get("chosen_image_id")
     defalt_layer = defalt_layer_forexample(chosen_image_id, mask_forall)
-    print(defalt_layer)
     return jsonify({"defalt_layer_forexample": defalt_layer})
     return None
 

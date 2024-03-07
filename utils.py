@@ -5,6 +5,7 @@ import torch
 import openai
 import csv
 import cv2
+import json
 import numpy as np
 import pandas as pd
 from io import BytesIO
@@ -477,6 +478,7 @@ def find_outlier_forexample(image_id, dic_array):
     return Extract_Numerical_dic(dic_array)
 
 def defalt_layer_forexample(image_id, dic_array):
+<<<<<<< Updated upstream
     dic_outlier = find_outlier_forexample(image_id, dic_array)
     sorted_by_y_then_height = sorted(dic_outlier, key=lambda x: (-x["Widget"]["y"], -(x["Widget"]["y"] + x["Widget"]["height"])))
     
@@ -494,6 +496,35 @@ def defalt_layer_forexample(image_id, dic_array):
         widget = dic['Widget']
         refine_num = dic['Refine_num']
         dic['mask_bool'] = extract_mask(widget, image_id, refine_num).astype(np.uint8)
+=======
+  dic_outlier = find_outlier_forexample(image_id, dic_array)
+  grouped_by_y = {}
+  for item in dic_outlier:
+      y_key = item["Widget"]["y"]
+      if y_key not in grouped_by_y:
+          grouped_by_y[y_key] = []
+      grouped_by_y[y_key].append(item)
+  print(grouped_by_y)
+  sorted_items = []
+  for items in grouped_by_y.values():
+      sorted_items.extend(sorted(items, key=lambda x: -(x["Widget"]["y"] + x["Widget"]["width"])))
+  print(sorted_items)
+
+  current_layer = 1
+  previous_item = None
+  for item in sorted_items:
+      if previous_item and (item["Widget"]["y"] != previous_item["Widget"]["y"] or (item["Widget"]["y"] + item["Widget"]["width"] != previous_item["Widget"]["y"] + previous_item["Widget"]["width"])):
+          current_layer += 1
+      item["Layer"] = current_layer
+      previous_item = item
+
+
+  sorted_dic_array = sorted(dic_outlier, key=lambda x: x["Layer"])
+  for dic in sorted_dic_array:
+    widget = dic['Widget']
+    refine_num = dic['Refine_num']
+    dic['mask_bool'] = extract_mask(widget, image_id, refine_num).astype(np.uint8).tolist()
+>>>>>>> Stashed changes
   return sorted_dic_array
 
 
@@ -785,9 +816,8 @@ def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
 
 def Num_To_Boolean(dic_array):
   for dic in dic_array:
-      dic['mask_bool'] = dic['mask_bool'].astype(bool)
+      dic['mask_bool'] = np.array(dic['mask_bool']).astype(bool)
   return dic_array
-
 
 def final_output_image(image_id, dic_array_):
   dic_array = Num_To_Boolean(dic_array_)
