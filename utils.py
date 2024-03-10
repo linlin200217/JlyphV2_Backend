@@ -1097,7 +1097,8 @@ def final_image_output_fordata(dic_array_input, categorical_result, df_path, ima
     dics = processed_data[i]
     remove_background = rembg.remove(get_image_by_id(final_output_image_forData(image_id, dics, i, df_path)))
     dic_output[i] = save_image(remove_background,"Final")
-  return dic_output
+  converted_output = [{"index": key, "image_id": value} for key, value in dic_output.items()]
+  return converted_output
 
 
 
