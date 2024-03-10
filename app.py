@@ -188,9 +188,52 @@ async def final_generation():
     dic_array = data.get("dic_array")
     image_id = data.get("image_id")
     final_generation_result = final_image_output_fordata(dic_array, result, data_file_path, image_id)
-    return jsonify({"efinal_generation_result": final_generation_result})
+    return jsonify({"final_generation_result": final_generation_result})
     return None
 
+
+@app.route("/visualisation_suggestion", methods=["POST"])
+async def visualisation_suggestion():
+    """
+    INPUT DATA{
+        Chosen_list: list,
+    }
+    RETURN DATA{
+        Suggestion: list,
+       
+    }
+    """
+    data = request.json
+    chosen_list= data.get("chosen_list")
+    Suggestion = get_visualization_suggestions(data_file_path, chosen_list)
+    return jsonify({"Suggestion": Suggestion})
+    return None
+
+@app.route("/final_placement", methods=["POST"])
+async def final_placement():
+    """
+    INPUT DATA{
+        dic:{
+            "Colname": list,
+            "type": str,
+            "image_size": 100/int,
+            "background_color":None/str,
+            "view_color":None/str,
+            "stroke_color":None/str,
+            "strokeWidth":2/int,
+            "width_gap": 50/int,
+            "height_gap":50/int,
+        },
+    }
+    RETURN DATA{
+        vega_lite_dic: dic
+    }
+    """
+    data = request.json
+    dic = data.get("dic")
+    vega_lite_dic = final_placement_generation(data_file_path,dic)
+    return jsonify({"vega_lite_dic": vega_lite_dic})
+    return None
 
 
 @app.route("/regenerate", methods=["POST"])
