@@ -71,6 +71,8 @@ PIPE_SDCC = StableDiffusionControlNetPipeline.from_pretrained(
     "/home/newdisk/Models/stable-diffusion-v1-5", controlnet=ControlNetModel.from_pretrained("/home/newdisk/Models/sd-controlnet-canny", torch_dtype=torch.float16), torch_dtype=torch.float16
 ).to(DEVICE)
 
+face2paint = torch.hub.load("bryandlee/animegan2-pytorch:main", "face2paint", size=512)
+model = torch.hub.load("bryandlee/animegan2-pytorch:main", "generator", pretrained="celeba_distill")
 
 ### Basic functions
 def save_image(img: Image.Image, prefix: Optional[str], type: str = "png") -> str:
@@ -1093,11 +1095,14 @@ def final_process_data(dic_array_input, categorical_result, df_path):
 def final_image_output_fordata(dic_array_input, categorical_result, df_path, image_id):
   processed_data = final_process_data(dic_array_input, categorical_result, df_path)
   dic_output = {}
+  dic_output_cartoon = {}
   for i in range(0, len(processed_data)):
     dics = processed_data[i]
     remove_background = rembg.remove(get_image_by_id(final_output_image_forData(image_id, dics, i, df_path)))
     dic_output[i] = save_image(remove_background,"Final")
-  converted_output = [{"index": key, "image_id": value} for key, value in dic_output.items()]
+    cartoon_style = get_image_by_id(final_output_image_forData(image_id, dics,i,df_path))
+    dic_output_cartoon[i] = save_image(rembg.remove(face2paint(model, cartoon_style)),"Cartoon")
+  converted_output = [[{"index": key, "image_id": value} for key, value in dic_output.items()],[{"index": key, "image_id": value} for key, value in dic_output_cartoon.items()]]
   return converted_output
 
 
@@ -1145,8 +1150,356 @@ def get_visualization_suggestions(df_path, chosen_list):
 
     return []
 
-
 ### Final Placement
+
+def sort_colnames_based_on_dtype(Colname, df_path):
+    df = pd.read_csv(df_path)
+    sorted_colnames = [None, None]
+    for col in Colname:
+        if pd.api.types.is_string_dtype(df[col]):
+            sorted_colnames[0] = col
+        elif pd.api.types.is_numeric_dtype(df[col]):
+            sorted_colnames[1] = col
+            
+    return sorted_colnames
+
+
+def final_placement_generation(df_path,dic):
+
+  Colname = dic["Colname"]
+  Colname_with_position = sort_colnames_based_on_dtype(Colname, df_path)
+  Image_size = dic["image_size"]
+  Background_color = dic["background_color"]
+  View_color = dic["view_color"]
+  Stroke_color = dic["stroke_color"]
+  StrokeWidth = dic["strokeWidth"]
+  Width_gap = dic["width_gap"]
+  Height_gap = dic["height_gap"]
+  if dic["type"]=="Grid":
+    return Make_grid(df_path=df_path,width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color, fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Isotype_horizontal":
+    return Make_singleIsotype_hor(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Isotype_vertical":
+    return Make_singleIsotype_ver(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Linechart":
+    return Make_single_linechart_float(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Linechart_withline":
+    return Make_single_linechart_float_withchart(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Multi_Isotype":
+    return Make_Multi_IsoType(df_path=df_path,colname1=Colname[0],colname2=Colname[1],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Bumpchart":
+    return Make_Multi_BumpChart(df_path=df_path,colname_str=Colname_with_position[0],colname_float=Colname_with_position[1],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Bumpchart_withline":
+    return Make_Multi_BumpChart_withChart(df_path=df_path,colname_str=Colname_with_position[0],colname_float=Colname_with_position[1],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Multi_Linechart":
+    return Make_Multi_LineChart(df_path=df_path,colname1=Colname[0],colname2=Colname[1],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  elif dic["type"]=="Multi_Linechart_withline":
+    return Make_Multi_LineChart_withChart(df_path=df_path,colname1=Colname[0],colname2=Colname[1],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+  return[]
+
+
+def find_next_largest_n_corrected(df_path):
+    df = pd.read_csv(df_path)
+    x = int(len(df))
+    n = round(x**0.5)
+    if n * n >= x:
+        return n
+    elif n * (n + 1) >= x:
+        return n + 1
+    else:
+        return n + 2 
+
+
+def Make_grid(df_path,width_height=100,strokeWidth=2,background = None, fill=None, stroke = None):
+  dic = {
+          "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "background": background,
+          "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+          "config": {"view": {"stroke": ""}},
+          "width": 500,
+          "height": 500,
+          "data": {"url": df_path},
+          "transform": [
+            {"calculate": f"ceil(datum.id/{find_next_largest_n_corrected(df_path)})", "as": "col"},
+            {"calculate": f"datum.id - datum.col*{find_next_largest_n_corrected(df_path)}", "as": "row"}
+          ],
+          "mark": {"type": "image", "width":width_height, "height":width_height, "baseline": "middle",},
+          "encoding": {
+            "y": {"field": "col", "type": "ordinal", "axis": None},
+            "x": {"field": "row", "type": "ordinal", "axis": None},
+            "url": {"field": "img", "type": "nominal",},
+            "size": {"value": 90}
+          },
+          "params": [{"name": "highlight", "select": "interval"}]
+        }
+  return dic
+
+
+def Make_singleIsotype_hor(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "background": background,
+        "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+        "config": {"view": {"stroke": ""}},
+        "width": 500,  
+        "height": 500, 
+        "data": {"url": df_path},
+        "transform": [
+        {"window": [{"op": "rank", "as": "rank"}], "groupby": ["Name","Bread"]}
+        ],
+        "mark": {"type": "image", "tooltip": {"content": "data"},"baseline": "middle", "width":width_height, "height":width_height},
+        "width":{"step": width_gap},
+        "height":{"step": height_gap},
+        "encoding": {
+          "y": {"field": colname, "type": "nominal","sort": "descending",},
+          "x": {"field": "rank", "type": "ordinal","axis": None,},
+          "url": {"field": "img", "type": "nominal",},
+          "text": {"field": colname, "type": "nominal",},
+          "size": {"value": 65}
+        }
+      }
+  return dic
+
+
+def Make_singleIsotype_ver(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "background": background,
+        "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+        "config": {"view": {"stroke": ""}},
+        "width": 500,  
+        "height": 500, 
+        "data": {"url": df_path},
+        "transform": [
+        {"window": [{"op": "rank", "as": "rank"}], "groupby": [colname]}
+        ],
+        "mark": {"type": "image", "tooltip": {"content": "data"},"baseline": "middle", "width":width_height, "height":width_height},
+        "width":{"step": width_gap},
+        "height":{"step": height_gap},
+        "encoding": {
+          "x": {"field": colname, "type": "nominal","sort": "descending",},
+          "y": {"field": "rank", "type": "ordinal","axis": None,"sort": "descending",},
+          "url": {"field": "img", "type": "nominal",},
+          "text": {"field": colname, "type": "nominal",},
+          "size": {"value": 65}
+        }
+      }
+  return dic
+
+
+def Make_single_linechart_float(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "background": background,
+    "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+    "config": {"view": {"stroke": ""}},
+    "width": 500,  
+    "height": 500, 
+    "data": {"url": df_path},
+    "transform": [{
+      "window": [{"op": "rank", "as": "id"}],
+      "groupby": ["data"]
+    }],
+  "mark": {"type": "image", "width":width_height, "height":width_height, "baseline": "middle","tooltip": {"content": "data"}},
+  "width":{"step": width_gap},
+  "height":{"step": height_gap},
+  "encoding": {
+      "y": {"field": colname, "type": "quantitative"},
+      "x": {"field": "id", "type": "ordinal", "axis": None, "sort": "descending"},
+      "url": {"field": "img", "type": "nominal",},
+      }
+    }
+  return dic
+
+
+def Make_single_linechart_float_withchart(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "background": background,
+        "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+        "width": 500,  
+        "height": 500, 
+        "data": {"url": df_path},
+        "transform": [{
+          "window": [{"op": "rank", "as": "id"}],
+          "groupby": ["data"]
+        }],
+        "layer":[
+          {"mark": {
+          "type": "line",
+          "opacity": 1,
+          "color": "gray",
+  
+          },
+        "width":{"step": width_gap},
+        "height":{"step": height_gap},
+        "encoding": {
+          "y": {"field": colname, "type": "quantitative"},
+          "x": {"field": "id", "type": "ordinal", "axis": None, "sort": "descending"},
+        }
+      },
+      {"mark": {"type": "image", "width":width_height, "height":width_height, "baseline": "middle","tooltip": {"content": "data"}},
+      "width":{"step": width_gap},
+        "height":{"step": height_gap},
+          "encoding": {
+          "y": {"field": colname, "type": "quantitative"},
+          "x": {"field": "id", "type": "ordinal", "axis": None, "sort": "descending"},
+          "url": {"field": "img", "type": "nominal",},
+          }}]}
+  return dic
+
+
+
+
+def Make_Multi_IsoType(df_path,colname1,colname2,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "background": background,
+      "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+      "config": {"view": {"stroke": ""}, },
+
+      "width": 500,  
+      "height": 500, 
+      "data": {"url": df_path},
+      "transform": [
+      {"window": [{"op": "rank", "as": "rank"}], "groupby": [colname1,colname2]}
+      ],
+      "mark": {"type": "image", "tooltip": {"content": "data"},"baseline": "middle", "width":width_height, "height":width_height},
+      "width":{"step": width_gap},
+      "height":{"step": height_gap},
+      "encoding": {
+        "y": {"field": colname2, "type": "nominal","sort": "descending",},
+        "x": {"field": "rank", "type": "ordinal","axis": None,},
+        "row": {"field": colname1, "header": {"title": colname1},"sort": "descending",},
+        "url": {"field": "img", "type": "nominal",},
+        "text": {"field": colname1, "type": "nominal"},
+
+      }
+    }
+  return dic
+
+
+
+
+def Make_Multi_LineChart(df_path,colname1,colname2,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "background": background,
+      "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+      "config": {"view": {"stroke": ""}, },
+      "width": 500,  
+      "height": 500, 
+      "data": {
+        "url": df_path
+      },
+      "mark": {"type": "image", "tooltip": {"content": "data"}, "width": width_height, "height": width_height},
+    
+      "encoding": {
+        "x": {"field": colname1, "type": "quantitative"},
+        "y": {"field": colname2, "type": "quantitative"},
+        "url": {"field": "img", "type": "nominal"}
+      }
+    }
+  return dic
+
+
+
+
+def Make_Multi_LineChart_withChart(df_path,colname1,colname2,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "background": background,
+    "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+    "config": {"view": {"stroke": ""}, },
+    "width": 500,  
+    "height": 500, 
+    "data": {
+      "url": df_path
+    },
+
+    "layer":[
+
+    {
+    "mark": {"type": "line", "color": "gray"},
+    "encoding": {
+    "x": {
+      "field": colname1, "type": "quantitative",
+    },
+    "y": {
+      "field": colname2, "type": "quantitative",
+    },}
+  },
+  {
+
+    "mark": {"type": "image", "tooltip": {"content": "data"}, "width":width_height, "height":width_height},
+  
+    "encoding": {
+      "x": {"field": colname1, "type": "quantitative",},
+      "y": {"field": colname2, "type": "quantitative",},
+      "url": {"field": "img", "type": "nominal"}
+    },}]}
+  return dic
+
+
+
+
+
+def Make_Multi_BumpChart(df_path,colname_str,colname_float,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "background": background,
+    "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+    "description": "Bump chart",
+    "width":500,
+    "height":250,
+    "data": {
+      "url": df_path
+    },
+    "mark": {"type": "image", "tooltip": {"content": "data"}, "width": width_height, "height": width_height},
+    "encoding": {
+      "x": {"field": colname_float, "type": "quantitative"},
+      "y": {"field": colname_str, "type": "nominal"},
+      "url": {"field": "img", "type": "nominal"},
+      "order": {"field": colname_float, "type": "quantitative"}
+    }
+  }
+
+  return dic
+
+
+
+
+def Make_Multi_BumpChart_withChart(df_path,colname_str,colname_float,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
+  dic = {
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "background": background,
+    "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
+    "description": "Bump chart",
+    "width":500,
+    "height":250,
+    "data": {
+      "url": df_path
+    },
+    "layer":[{
+      "mark": {"type": "line","color": "gray"},
+    "encoding": {
+      "x": {"field": colname_float, "type": "quantitative"},
+      "y": {"field": colname_str, "type": "nominal"},
+      "order": {"field": colname_float, "type": "quantitative"}
+    }},
+
+   { "mark": {"type": "image", "tooltip": {"content": "data"}, "width": width_height, "height": width_height},
+    "encoding": {
+      "x": {"field": colname_float, "type": "quantitative"},
+      "y": {"field": colname_str, "type": "nominal"},
+      "url": {"field": "img", "type": "nominal"},
+      "order": {"field": colname_float, "type": "quantitative"}
+    }
+  }]}
+
+  return dic
+
+
 
 
 
