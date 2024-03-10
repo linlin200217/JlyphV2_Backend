@@ -1,3 +1,4 @@
+### Package Import
 import datetime
 import random
 import requests
@@ -24,6 +25,7 @@ from os.path import join, dirname
 from dotenv import load_dotenv
 
 # pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
+### Set Environment and Global values
 os.environ['CUDA_HOME'] = '/usr/local/cuda-11.3'
 os.environ["CUDA_VISIBLE_DEVICES"]="1,2"
 
@@ -59,6 +61,7 @@ os.makedirs(DATAPATH, exist_ok=True)
 os.makedirs(IMAGE_RESOURCE_PATH, exist_ok=True)
 os.makedirs(WEIGHTSPATH, exist_ok=True)
 
+### Load Models
 # wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth -P weights
 CHECKPOINT_PATH = os.path.join("weights", "sam_vit_h_4b8939.pth")
 sam = sam_model_registry[MODEL_TYPE](checkpoint=CHECKPOINT_PATH).to(device=DEVICE)
@@ -68,6 +71,8 @@ PIPE_SDCC = StableDiffusionControlNetPipeline.from_pretrained(
     "/home/newdisk/Models/stable-diffusion-v1-5", controlnet=ControlNetModel.from_pretrained("/home/newdisk/Models/sd-controlnet-canny", torch_dtype=torch.float16), torch_dtype=torch.float16
 ).to(DEVICE)
 
+
+### Basic functions
 def save_image(img: Image.Image, prefix: Optional[str], type: str = "png") -> str:
     img_copy = img.copy()
     img_resized = img_copy.resize((512, 512))
@@ -81,6 +86,8 @@ def save_image(img: Image.Image, prefix: Optional[str], type: str = "png") -> st
 def get_image_by_id(image_id: str) -> Image.Image:
     return Image.open(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png")).resize((512,512))
 
+
+### LLM -> Words recommendtaion
 def csv_to_text(data_path):
     data = []
     with open(data_path, 'r', encoding='utf-8') as file:
@@ -133,6 +140,8 @@ def data_process(data_path: str) -> Dict:
     struct["Wordcloud"] = word_recommendation(system_prompt, data_path)
     return struct
 
+
+### LLM -> Images recommendtaion
 def image_recommendation(user_prompt):
     ideation_image_set = []
 
@@ -159,6 +168,8 @@ def image_recommendation(user_prompt):
             print("Failed to retrieve image.")
     return ideation_image_set
 
+
+### SGA -> Extract mask
 def extract_mask(widget, image_id:str, mask_refine:int):
   box = widget
   box = np.array([
@@ -230,7 +241,7 @@ def extract_mask_image(widget, image_id:str, mask_refine:int):
   mask_result = out_mask_id
   return mask_result
 
-
+### Generate Categorical Element
 ###### FORMAL ########
 def make_prompt_for_each_mask(prompts: List[str], cat_num, path) -> Dict[str, List[Tuple]]:
 
@@ -378,6 +389,7 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
     return rgba_images_by_category
 
 
+### Regenerate
 def regenerate_prompt(prompt: Optional[str] = None, whole_prompt: Optional[str] = None):
     color = random.choice(COLOR)
     if prompt and whole_prompt:
@@ -418,6 +430,8 @@ def regenerate_rgb(image_id: str, mask, prompt: Optional[str] = None, whole_prom
     re_generate_rgba_id = convert_RGBA(re_generate_image_id, mask_re)
     return re_generate_rgba_id
 
+
+### Generate Numerical Element
 def are_widgets_equal(widget_a, widget_b):
     return widget_a['x'] == widget_b['x'] and \
            widget_a['y'] == widget_b['y'] and \
@@ -801,6 +815,7 @@ def final_output_image(image_id, dic_array_):
 
 
 
+### Generate Final images
 def Normalize_Number(num, df, colname):
     min_val = df[colname].min()
     max_val = df[colname].max()
@@ -818,11 +833,6 @@ def Normalize_Size(num, df, colname):
     normalized_num = 0.75 + (num - min_val) * (0.5 / (max_val - min_val))
 
     return normalized_num
-
-
-
-import numpy as np
-import pandas as pd
 
 
 def pre_dic_fordata(dic_array, index, df_path):
@@ -1091,7 +1101,7 @@ def final_image_output_fordata(dic_array_input, categorical_result, df_path, ima
 
 
 
-
+### visulisation form
 
 def data_struc(df_path):
   df = pd.read_csv(df_path)
@@ -1133,6 +1143,9 @@ def get_visualization_suggestions(df_path, chosen_list):
             return ['Multi_Linechart', 'Multi_Linechart_withline']
 
     return []
+
+
+### Final Placement
 
 
 
