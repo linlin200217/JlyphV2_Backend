@@ -6,6 +6,7 @@ import openai
 import csv
 import cv2
 import json
+import rembg
 import numpy as np
 import pandas as pd
 from io import BytesIO
