@@ -798,3 +798,295 @@ def final_output_image(image_id, dic_array_):
   elif form_combination in ["Number_Path", "Size_Number_Path"]:
     return segment_curve_and_paste_extracted_bgra(image_id, dic_array)
 
+
+
+def Normalize_Number(num, df, colname):
+    min_val = df[colname].min()
+    max_val = df[colname].max()
+    if min_val >= 1 and max_val <= 5:
+        normalized_num = round(num)
+    else:
+        normalized_num = 1 + (num - min_val) * (4 / (max_val - min_val))
+        normalized_num = round(normalized_num)
+    return normalized_num
+
+
+def Normalize_Size(num, df, colname):
+    min_val = df[colname].min()
+    max_val = df[colname].max()
+    normalized_num = 0.75 + (num - min_val) * (0.5 / (max_val - min_val))
+
+    return normalized_num
+
+
+
+import numpy as np
+import pandas as pd
+
+
+def pre_dic_fordata(dic_array, index, df_path):
+    df = pd.read_csv(df_path)
+    dic_array_update = form_with_position(dic_array)
+    summary_dic = {
+        "move": [],
+        "num": [],
+        "gap": [],
+        "direction": []
+    }
+
+    sorted_dic_list = sorted(dic_array_update, key=lambda x: x['Position'])
+
+    for dic in sorted_dic_list:
+        form = dic.get('Form')
+        layer = dic['Position']
+        gap = dic.get('Gap', 0)
+
+        if form in ["Number_Vertical", "Number_Horizontal"]:
+            direction = "vertical" if form == "Number_Vertical" else "horizontal"
+            summary_dic["move"].append(layer - 1)
+            summary_dic["gap"].append(gap)
+            summary_dic["direction"].append(direction)
+            col_value = Normalize_Number(df.loc[index, dic['Colname']], df, dic['Colname'])
+            summary_dic["num"].append(col_value)
+
+    return summary_dic
+
+
+def dic_fordata(dic_array, index):
+  predic = pre_dic_fordata(dic_array,index,df_path)
+  move = predic["move"]
+  num = predic["num"]
+  gap = predic["gap"]
+  directions = predic["direction"]
+
+  dic = {}
+  num = [1 if i not in move else num[move.index(i)] for i in range(len(dic_array))]
+  gap = [0 if i not in move else gap[move.index(i)] for i in range(len(dic_array))]
+  directions = ["" if i not in move else directions[move.index(i)] for i in range(len(dic_array))]
+
+  x = 0
+  y = 0
+
+  for slice, (count, _gap, direction) in enumerate(zip(num, gap, directions)):
+    dic[slice] = [[x,y]]
+    for c in range(1, count):
+        positions = dic.get(slice, [[x, y]])
+        positions.append([x, y])
+        if direction == "horizontal":
+            x -=- _gap
+            positions[-1][0] = x
+        elif direction == "vertical":
+            y -=- _gap
+            positions[-1][1] = y
+        dic[slice] = positions
+
+  return dic
+
+
+
+def Set_Size_Num_fordata(image_id,dic_array,index,df_path):
+  df = pd.read_csv(df_path)
+  images = []
+  masks = []
+  order = []
+  corrected_masks = []
+  scale_factors = []
+  processed_images = []
+  processed_masks = []
+  image_id = image_id
+  sorted_data = sorted(form_with_position(dic_array), key=lambda x: x['Position'])
+  dic_for_pos = dic_fordata(dic_array,index)
+  for item in sorted_data:
+    images.append(item['rgba_id'])
+    masks.append(item['mask_bool'])
+    order.append(item['Layer'])
+
+    if item['Form'] == 'Size':
+      colname = item['Colname']
+      scale_factors.append(Normalize_Size(df.loc[index, colname], df, colname))
+    else:
+      scale_factors.append(1)
+  canvas_size = (512,512,3)
+  canvas = np.ones(canvas_size, dtype=np.uint8)*255
+  for image_id, mask, scale_factor, (key, positions) in zip(images, masks, scale_factors, dic_for_pos.items()):
+    ori_image = get_image_by_id(image_id)
+    ori_image_rgb = np.array(ori_image)
+    image = cv2.cvtColor(ori_image_rgb, cv2.COLOR_RGB2BGR)
+    original_mask = mask.astype(np.uint8)
+
+    contours, _ = cv2.findContours(original_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        contour_center = get_contour_center(largest_contour)
+
+        new_width, new_height = int(image.shape[1] * scale_factor), int(image.shape[0] * scale_factor)
+        scaled_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        scaled_mask = cv2.resize(original_mask, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
+
+        new_contours, _ = cv2.findContours(scaled_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        new_contour_center = get_contour_center(max(new_contours, key=cv2.contourArea))
+
+        center_dx, center_dy = new_contour_center[0] - contour_center[0], new_contour_center[1] - contour_center[1]
+        M = np.float32([[1, 0, -center_dx], [0, 1, -center_dy]])
+
+        corrected_scaled_mask = cv2.warpAffine(scaled_mask, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        corrected_masks.append(corrected_scaled_mask)
+        corrected_scaled_image = cv2.warpAffine(scaled_image, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+
+        for dx, dy in positions:
+            M = np.float32([[1, 0, dx], [0, 1, -dy]])
+            translated_mask = cv2.warpAffine(corrected_scaled_mask, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+            translated_image = cv2.warpAffine(corrected_scaled_image, M, (canvas_size[1], canvas_size[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+
+
+            processed_images.append((key, translated_image, translated_mask))
+  for layer in order:
+    layer_index = layer - 1
+    for item in processed_images:
+        if item[0] == layer_index:
+            image, mask = item[1], item[2]
+
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            canvas[mask > 0] = image_rgb[mask > 0]
+
+  final_image = Image.fromarray(canvas)
+  size_num_id = save_image(final_image, "Final")
+  return corrected_masks, size_num_id
+
+
+
+def segment_curve_and_paste_extracted_bgra_forData(image_id, dic_array,index,df_path):
+    df = pd.read_csv(df_path)
+    image_ids = []
+    masks = []
+    gaps = []
+    nums = []
+    directons = []
+    masks_array = transform_NumpyToBoolean(extract_colnameTopath(Set_Size_Num_fordata(image_id,dic_array,index,df_path)[0],dic_array))
+
+
+    for item in dic_array:
+      if 'Path' in (item.get('Form') or ''):
+        colname = item['Colname']
+        nums.append(Normalize_Number(df.loc[index, colname], df, colname))
+        image_ids.append(item['rgba_id'])
+        gaps.append(item.get('Gap', None))
+
+        if item['Path_Col'] and item['Path_Col'] in masks_array:
+            masks.append(masks_array[item['Path_Col']])
+    directions = ["bottom"] * len(image_ids)
+    canvas_id = Set_Size_Num_fordata(image_id,dic_array,index,df_path)[1]
+
+
+
+    canvas_pil = get_image_by_id(canvas_id)
+    canvas_rgb = np.array(canvas_pil)
+    canvas_bgr = canvas_rgb[:, :, ::-1]
+    for mask, num, image_id, gap, direction in zip(masks, nums, image_ids, gaps, directions):
+        points = np.argwhere(extract_smoothed_path(mask))
+        if len(points) < num:
+            raise ValueError("Not enough points on the curve to segment into n parts")
+
+        segmented_points = points[np.round(np.linspace(0, len(points) - 1, num)).astype(int)]
+        extracted = load_image_bgra(image_id)
+
+        if direction == 'top':
+            baseline = find_bottom_baseline_bgra(extracted)
+            gap_sign = -1
+        elif direction == 'bottom':
+            baseline = find_top_baseline_bgra(extracted)
+            gap_sign = 1
+        else:
+            raise ValueError("Invalid direction. Must be 'top' or 'bottom'.")
+
+        if baseline is not None:
+            for point in segmented_points:
+                top_left_x = point[1] - extracted.shape[1] // 2
+                top_left_y = point[0] - baseline + gap_sign * gap
+                paste_with_alpha_bgra(canvas_bgr, extracted, top_left_x, top_left_y)
+    final_rgb = canvas_bgr[:, :, ::-1]
+    final_image_pil = Image.fromarray(final_rgb)
+    numerical_path_image_id = save_image(final_image_pil, "Final")
+    return numerical_path_image_id
+
+
+def final_output_image_forData(image_id, dic_array_ ,index, df):
+  dic_array = Num_To_Boolean(dic_array_)
+  form_combination = determine_form(dic_array)
+  if form_combination in ["Number_Vertical", "Number_Horizontal", "Size_Number_Vertical", "Size_Number_Horizontal", "Size"]:
+    return Set_Size_Num_fordata(image_id,dic_array,index,df)[1]
+  elif form_combination in ["Number_Path", "Size_Number_Path"]:
+    return segment_curve_and_paste_extracted_bgra_forData(image_id, dic_array,index, df)
+
+
+
+def match_rgba(column_name, prompt_detail):
+    if column_name in result:
+        for item in result[column_name]:
+            if item['prompt_detail'] == prompt_detail:
+                return item['rgba_image_id']
+    return None
+def find_rgba_id_for_all(dic1_list, result_data):
+    for category, items in result_data.items():
+        if len(items) == 1 and items[0]['prompt_detail'] == category:
+            rgba_image_id = items[0]['rgba_image_id']
+            for dic1 in dic1_list:
+                if dic1['Colname'] == category:
+                    dic1['rgba_id'] = rgba_image_id
+    return dic1_list
+
+
+
+def generate_full_dics_withdata(dic_array_input, categorical_result, df_path):
+  list_dic1_full = []
+  df = pd.read_csv(df_path)
+  for _, row in df.iterrows():
+      row_dic1 = [dic.copy() for dic in dic_array_input]
+      row_dic1 = find_rgba_id_for_all(row_dic1, categorical_result)
+
+      for dic in row_dic1:
+        colname = dic['Colname']
+        if colname in row and not dic['rgba_id']:
+          dic['rgba_id'] = match_rgba(colname, row[colname])
+
+      list_dic1_full.append(row_dic1)
+
+  return list_dic1_full
+
+
+def final_process_data(dic_array_input, categorical_result, df_path):
+    data = generate_full_dics_withdata(dic_array_input, categorical_result, df_path)
+    for dic_list in data:
+        widget_to_dic = {
+            tuple(dic['widget'].values()): dic
+            for dic in dic_list
+            if dic['Class'] == 'Categorical'
+        }
+        to_remove = []
+        for dic in dic_list:
+            if dic['rgba_id'] is None and dic['Class'] != 'Categorical':
+                widget_tuple = tuple(dic['widget'].values())
+                if widget_tuple in widget_to_dic:
+                    matching_dic = widget_to_dic[widget_tuple]
+                    dic['rgba_id'] = matching_dic['rgba_id']
+                    to_remove.append(matching_dic)
+                else:
+                    raise ValueError(f"No matching categorical dic found for widget {dic['widget']}")
+
+        for dic in to_remove:
+            dic_list.remove(dic)
+
+    return data
+
+
+def final_image_output_fordata(dic_array_input, categorical_result, df_path, image_id):
+  processed_data = final_process_data(dic_array_input, categorical_result, df_path)
+  dic_output = {}
+  for i in range(0, len(processed_data)):
+    dics = processed_data[i]
+    remove_background = rembg.remove(get_image_by_id(final_output_image_forData(image_id, dics, i, df_path)))
+    dic_output[i] = save_image(remove_background,"Final")
+  return dic_output
+
+
+
