@@ -140,6 +140,7 @@ async def generate_example():
             "outlier_id": str,
             "mask_bool": array,
             "Layer": int,
+            "Position": int,
             "Form": "Size"/'Number_Vertical','Number_Horizontal','Number_Path',None,
             "Gap": int,None,
         }
