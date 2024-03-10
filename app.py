@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from utils import DATAPATH, IMAGE_RESOURCE_PATH, COLOR, data_process, image_recommendation, extract_mask_image, convert_RGBA_batch, \
-regenerate_rgb, defalt_layer_forexample, final_output_image
+regenerate_rgb, defalt_layer_forexample, final_output_image, final_image_output_fordata
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -156,6 +156,42 @@ async def generate_example():
     return jsonify({"example": example})
     return None
 
+
+@app.route("/final_generation", methods=["POST"])
+async def final_generation():
+    """
+    INPUT DATA{
+        result: dic,
+        dic_array:{
+            "Colname": str,
+            "widget": dic,
+            "Refine_num": num,
+            "Class": str("Categorical"/"Numerical"),
+            "rgba_id": None,
+            "mask_bool": array,
+            "Layer": int,
+            "Position": int,
+            "Form": "Size"/'Number_Vertical','Number_Horizontal','Number_Path',None,
+            "Gap": int,None,
+            "Path_Col": str, None,
+        },
+        image_id: str
+    }
+    RETURN DATA{
+        final_generation_result:{
+        data_index: image_id
+    }
+    """
+    data = request.json
+    result = data.get("result")
+    dic_array = data.get("dic_array")
+    image_id = data.get("image_id")
+    final_generation_result = final_image_output_fordata(dic_array, result, data_file_path, image_id)
+    return jsonify({"efinal_generation_result": final_generation_result})
+    return None
+
+
+
 @app.route("/regenerate", methods=["POST"])
 def regenerate():
     """
@@ -207,4 +243,5 @@ def get_image(image_id):
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=9009, debug=True)
+
 
