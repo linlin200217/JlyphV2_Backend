@@ -1091,3 +1091,48 @@ def final_image_output_fordata(dic_array_input, categorical_result, df_path, ima
 
 
 
+
+
+def data_struc(df_path):
+  df = pd.read_csv(df_path)
+  type_map = {
+        'int64': 'Int',
+        'float64': 'Float',
+        'object': 'Str',
+        'bool': 'Bool'
+    }
+  return {col: type_map[str(df[col].dtype)] for col in df.columns}
+
+def get_visualization_suggestions(df_path, chosen_list):
+    dic = data_struc(df_path)
+    if not chosen_list:
+        return ['Grid']
+    
+    if len(chosen_list) == 1:
+        dtype = dic[chosen_list[0]]
+        if dtype == 'Str':
+            return ['Isotype_horizontal', 'Isotype_vertical']
+        elif dtype == 'Int':
+            return ['Isotype_horizontal', 'Isotype_vertical', 'Linechart', 'Linechart_withline']
+        elif dtype == 'Float':
+            return ['Linechart', 'Linechart_withline']
+    
+    if len(chosen_list) == 2:
+        dtype1, dtype2 = dic[chosen_list[0]], dic[chosen_list[1]]
+        if dtype1 == 'Str' and dtype2 == 'Str':
+            return ['Multi_Isotype']
+        elif 'Str' in [dtype1, dtype2] and 'Int' in [dtype1, dtype2]:
+            return ['Multi_Isotype', 'Bumpchart', 'Bumpchart_withline']
+        elif dtype1 == 'Int' and dtype2 == 'Int':
+            return ['Multi_Isotype', 'Multi_Linechart', 'Multi_Linechart_withline']
+        elif 'Str' in [dtype1, dtype2] and 'Float' in [dtype1, dtype2]:
+            return ['Bumpchart', 'Bumpchart_withline']
+        elif 'Int' in [dtype1, dtype2] and 'Float' in [dtype1, dtype2]:
+            return ['Multi_Linechart', 'Multi_Linechart_withline']
+        elif dtype1 == 'Float' and dtype2 == 'Float':
+            return ['Multi_Linechart', 'Multi_Linechart_withline']
+
+    return []
+
+
+
