@@ -464,23 +464,31 @@ def extract_outlier_image(widget, image_id:str, mask_refine:int):
 
   outlier_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
   draw = ImageDraw.Draw(outlier_image)
+
   for y in range(height):
-    for x in range(width):
-        if mask[y][x]:
-            pixel_color = (0, 0, 0, 0)
-            if (
-                x == 0
-                or x == width - 1
-                or y == 0
-                or y == height - 1
-                or not mask[y - 1][x]
-                or not mask[y + 1][x]
-                or not mask[y][x - 1]
-                or not mask[y][x + 1]
-            ):
-                for i in range(15):
-                    if x + i < width:
-                        draw.point((x + i, y), fill=(39, 78, 19))
+      for x in range(width):
+          if mask[y][x]:
+              pixel_color = (255, 255, 255, 255)  
+              draw.point((x, y), fill=pixel_color)
+
+
+  for y in range(height):
+      for x in range(width):
+          if mask[y][x]:
+              if (
+                  x == 0
+                  or x == width - 1
+                  or y == 0
+                  or y == height - 1
+                  or not mask[y - 1][x]
+                  or not mask[y + 1][x]
+                  or not mask[y][x - 1]
+                  or not mask[y][x + 1]
+              ):
+                  for i in range(15):
+                      if x + i < width:
+                          draw.point((x + i, y), fill=(39, 78, 19, 255))  
+
   outlier_image = outlier_image.resize((512,512))
   out_outlier_id = save_image(outlier_image, "outlier")
   return out_outlier_id
