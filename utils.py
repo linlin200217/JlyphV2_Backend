@@ -513,6 +513,7 @@ def defalt_layer_forexample(image_id, dic_array):
         if previous_item and not (item["Widget"]["y"] + item["Widget"]["height"] == previous_item["Widget"]["y"] + previous_item["Widget"]["height"] and item["Widget"]["y"] == previous_item["Widget"]["y"]):
             current_layer += 1
         item["Layer"] = current_layer
+        item["Position"] = current_layer
         previous_item = item
 
     sorted_dic_array = sorted(sorted_items, key=lambda x: x["Layer"])
@@ -873,7 +874,7 @@ def pre_dic_fordata(dic_array, index, df_path):
     return summary_dic
 
 
-def dic_fordata(dic_array, index):
+def dic_fordata(dic_array, index, df_path):
   predic = pre_dic_fordata(dic_array,index,df_path)
   move = predic["move"]
   num = predic["num"]
@@ -916,7 +917,7 @@ def Set_Size_Num_fordata(image_id,dic_array,index,df_path):
   processed_masks = []
   image_id = image_id
   sorted_data = sorted(form_with_position(dic_array), key=lambda x: x['Position'])
-  dic_for_pos = dic_fordata(dic_array,index)
+  dic_for_pos = dic_fordata(dic_array,index,df_path)
   for item in sorted_data:
     images.append(item['rgba_id'])
     masks.append(item['mask_bool'])
@@ -1041,9 +1042,9 @@ def final_output_image_forData(image_id, dic_array_ ,index, df):
 
 
 
-def match_rgba(column_name, prompt_detail):
-    if column_name in result:
-        for item in result[column_name]:
+def match_rgba(column_name, prompt_detail,result_data):
+    if column_name in result_data:
+        for item in result_data[column_name]:
             if item['prompt_detail'] == prompt_detail:
                 return item['rgba_image_id']
     return None
@@ -1068,7 +1069,7 @@ def generate_full_dics_withdata(dic_array_input, categorical_result, df_path):
       for dic in row_dic1:
         colname = dic['Colname']
         if colname in row and not dic['rgba_id']:
-          dic['rgba_id'] = match_rgba(colname, row[colname])
+          dic['rgba_id'] = match_rgba(colname, row[colname],categorical_result)
 
       list_dic1_full.append(row_dic1)
 

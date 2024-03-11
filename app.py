@@ -8,8 +8,6 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 CORS(app)
 
-data_file_path = ''
-
 @app.route('/')
 def hello():
     return 'Backend listening...'
@@ -116,6 +114,7 @@ async def generate_numerical_element():
         "Class": str("Categorical"/"Numerical")
         "outlier_id": str,
         "Layer": int,
+        "Position": int,
         "mask_bool": array
     },]
     }
