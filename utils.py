@@ -147,17 +147,17 @@ def data_process(data_path: str) -> Dict:
 def image_recommendation(user_prompt):
     ideation_image_set = []
 
-    prompt = f"A single, cartoon style, 2D {user_prompt}, flat with no shadow, white background"
+    prompt = f"A single, cartoon style, 2D {user_prompt}, flat with no shadow. 512x512 white background, picture taken from 50 meters away"
 
     client = OpenAI(
-        api_key=OPENAI_KEY
+        api_key=OPENAI_API_KEY
     )
 
     image_generation = client.images.generate(
         prompt=prompt,
         model="dall-e-2",
-        n=3, 
-        size="1024x1024"
+        n=3,
+        size="512x512"
     )
     for i, image in enumerate(image_generation.data):
         response = requests.get(image.url)
