@@ -8,6 +8,7 @@ import csv
 import cv2
 import json
 import rembg
+import base64
 import numpy as np
 import pandas as pd
 from io import BytesIO
@@ -244,8 +245,91 @@ def extract_mask_image(widget, image_id:str, mask_refine:int):
   return mask_result
 
 ### Generate Categorical Element
-###### FORMAL ########
-def make_prompt_for_each_mask(prompts: List[str], cat_num, path) -> Dict[str, List[Tuple]]:
+
+def csv_to_text(file_path):
+    data = []
+
+    with open(file_path, 'r', encoding = 'utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            data.append(row)
+
+    text_content = "Here is the data from the CSV file:\n"
+    for row in data:
+        row_text = ', '.join([f"{key}: {value}" for key, value in row.items()])
+        text_content += f"- {row_text}\n"
+
+    return text_content
+
+
+def list_to_formatted_string(lst):
+    formatted_string = ""
+    for index, item in enumerate(lst, start = 1):
+        formatted_string += f"{index}. {item}\n"
+    return formatted_string
+    
+def encode_image(image):
+    img_byte_arr = io.BytesIO()
+    image.save(img_byte_arr, format ='JPEG')
+    img_byte_arr = img_byte_arr.getvalue()
+    return base64.b64encode(img_byte_arr).decode('utf-8')   
+def chat_query(system_prompt, user_prompt):
+    client = OpenAI(api_key = OPENAI_API_KEY)
+
+    chat_completion = client.chat.completions.create(
+        messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+        ],
+        model = "gpt-4",
+    )
+
+    return chat_completion.choices[0].message.content
+
+def image_to_text(complete_image_path, partial_image_path, keyword):
+    base64_complete_image = encode_image(get_image_by_id(complete_image_path))
+    base64_partial_image = encode_image(get_image_by_id(partial_image_path))
+    client = OpenAI(api_key = OPENAI_API_KEY)
+
+    system_prompt = ("You will be given two images and a keyword. One of the images shows a complete object, while the other image shows only a part separated from the whole object. The keyword point out what the whole object is.\n"
+                     "You are required to provide a short description between 1~5 words of the partial object. Specify its main characteristics to the whole object.\n"
+                     "Example:\n"
+                     "Image input:\n"
+                     "an image of a hamburger, an image of the beef patty at the middle of the hamburger\n"
+                     "Keyword input:\n"
+                     "Humburger"
+                     "Your response:\n"
+                     "beef patty\n"
+    )
+    user_content = [
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_complete_image}"}},
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_partial_image}"}},
+        {"type": "text", "text": keyword} 
+    ]
+
+    chat_completion = client.chat.completions.create(
+        model = "gpt-4-vision-preview",
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ],
+        max_tokens = 500
+    )
+
+    return chat_completion.choices[0].message.content
+
+
+def get_ColToPrompt(image_id,initial_dic,keyword):
+  partial_image_ids = list(initial_dic.values())
+  descriptions = []
+
+  for partial_image_id in partial_image_ids:
+      descriptions.append(image_to_text(image_id, partial_image_id, keyword))
+  description_dic = {key: value for key, value in zip(initial_dic.keys(), descriptions)}
+  return description_dic
+
+
+def make_prompt_for_each_mask(prompts, cat_num, path) -> Dict[str, List[Tuple]]:
 
     df = pd.read_csv(path)
     dic_cat_num = {"Categorical": [], "Numerical": []}
@@ -259,32 +343,27 @@ def make_prompt_for_each_mask(prompts: List[str], cat_num, path) -> Dict[str, Li
         dic_cat_num["Categorical"].append(key)
 
         if widget_str in reverse_widgets_str_1:
-            reverse_widgets_str_1.pop(widget_str)  
+            reverse_widgets_str_1.pop(widget_str)
 
     for key in reverse_widgets_str_1.values():
         dic_cat_num["Numerical"].append(key)
 
     prompts_dict = {}
-    prompt_index = 0
-
     for category, items in dic_cat_num.items():
-        for item in items:
-            if category == "Categorical" and prompt_index < len(prompts):
-                item_duplicated = df[item].drop_duplicates()
-                num = len(item_duplicated)
+      for item in items:
+        prompt = prompts[item]  
+        if category == "Categorical":
+            item_duplicated = df[item].drop_duplicates()
+            num = len(item_duplicated)
 
-                colors = random.sample(COLOR, min(num, len(COLOR)))
-                prompt_list = [(f"A {color} {prompts[prompt_index]}", color, value) for value, color in zip(item_duplicated, colors)]
-                prompts_dict[item] = prompt_list
-                prompt_index += 1
+            colors = random.sample(COLOR, min(num, len(COLOR)))
+            prompt_list = [(f"A {color} {prompt}", color, value) for value, color in zip(item_duplicated, colors)]
+            prompts_dict[item] = prompt_list
 
-            elif category == "Numerical" and prompt_index < len(prompts):
-                color = random.choice(COLOR)
-                prompt_list = [(f"A {color} {prompts[prompt_index]}", color, item)]
-                prompts_dict[item] = prompt_list
-                prompt_index += 1
-    if prompt_index != len(prompts):
-        raise ValueError("Not all prompts have been used. Please check the categoricals_numericals dictionary and prompts list for consistency.")
+        elif category == "Numerical":
+            color = random.choice(COLOR)
+            prompt_list = [(f"A {color} {prompt}", color, item)]
+            prompts_dict[item] = prompt_list
 
     return prompts_dict
 
@@ -315,8 +394,9 @@ def generate_images_by_category(category_prompts, category_image_ids):
             out_image_ids.append(out_image_id)
         generated_images[category] = out_image_ids
     return generated_images
-  
-####FORMAL####
+
+
+
 def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
     df = pd.read_csv(path)
     mask_ori = {item["Colname"]: [item["Widget"], item["Refine_num"]] for item in mask_forall}
@@ -344,7 +424,7 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
     for key, widget_str in widgets_str_0.items():
         dic_cat_num["Categorical"].append(key)
         if widget_str in reverse_widgets_str_1:
-            reverse_widgets_str_1.pop(widget_str) 
+            reverse_widgets_str_1.pop(widget_str)
 
 
     for key in reverse_widgets_str_1.values():
@@ -352,9 +432,8 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
 
     keys_to_keep = set(dic_cat_num["Categorical"] + dic_cat_num["Numerical"])
     masks = {key: value for key, value in mask_ori.items() if key in keys_to_keep}
-    ###### Prompts要改哦
+
     masks_length = len(masks.keys())
-    prompts = [prompt] * masks_length
     for c in masks.keys():
         initial_widget = masks[c][0]
         initial_mask_num = masks[c][1]
@@ -362,7 +441,9 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
         initial_image_ids[c] = initial_image
     category_image_ids = initial_image_ids
 
-    category_prompts = make_prompt_for_each_mask(prompts, selection, path)
+    colprodic = get_ColToPrompt(chosen_image_id,category_image_ids,prompt)
+
+    category_prompts = make_prompt_for_each_mask(colprodic, selection, data_path)
     generate_image_ids = generate_images_by_category(category_prompts, category_image_ids)
 
     for category, ids in generate_image_ids.items():
@@ -389,7 +470,7 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
         rgba_images_by_category[category] = rgba_image_details
 
     return rgba_images_by_category
-
+  
 
 ### Regenerate
 def regenerate_prompt(prompt: Optional[str] = None, whole_prompt: Optional[str] = None):
