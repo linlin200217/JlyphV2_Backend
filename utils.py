@@ -11,6 +11,7 @@ import rembg
 import base64
 import numpy as np
 import pandas as pd
+import io
 from io import BytesIO
 from openai import OpenAI
 from scipy.optimize import curve_fit
@@ -151,7 +152,7 @@ def image_recommendation(user_prompt):
     prompt = f"A single, cartoon style, 2D {user_prompt}, flat with no shadow. 512x512 white background, picture taken from 50 meters away"
 
     client = OpenAI(
-        api_key=OPENAI_API_KEY
+        api_key=OPENAI_KEY
     )
 
     image_generation = client.images.generate(
@@ -274,7 +275,7 @@ def encode_image(image):
     img_byte_arr = img_byte_arr.getvalue()
     return base64.b64encode(img_byte_arr).decode('utf-8')   
 def chat_query(system_prompt, user_prompt):
-    client = OpenAI(api_key = OPENAI_API_KEY)
+    client = OpenAI(api_key = OPENAI_KEY)
 
     chat_completion = client.chat.completions.create(
         messages = [
@@ -289,7 +290,7 @@ def chat_query(system_prompt, user_prompt):
 def image_to_text(complete_image_path, partial_image_path, keyword):
     base64_complete_image = encode_image(get_image_by_id(complete_image_path))
     base64_partial_image = encode_image(get_image_by_id(partial_image_path))
-    client = OpenAI(api_key = OPENAI_API_KEY)
+    client = OpenAI(api_key = OPENAI_KEY)
 
     system_prompt = ("You will be given two images and a keyword. One of the images shows a complete object, while the other image shows only a part separated from the whole object. The keyword point out what the whole object is.\n"
                      "You are required to provide a short description between 1~5 words of the partial object. Specify its main characteristics to the whole object.\n"
@@ -443,7 +444,7 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
 
     colprodic = get_ColToPrompt(chosen_image_id,category_image_ids,prompt)
 
-    category_prompts = make_prompt_for_each_mask(colprodic, selection, data_path)
+    category_prompts = make_prompt_for_each_mask(colprodic, selection, path)
     generate_image_ids = generate_images_by_category(category_prompts, category_image_ids)
 
     for category, ids in generate_image_ids.items():

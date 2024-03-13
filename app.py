@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from utils import DATAPATH, IMAGE_RESOURCE_PATH, COLOR, data_process, image_recommendation, extract_mask_image, convert_RGBA_batch, \
-regenerate_rgb, defalt_layer_forexample, final_output_image, final_image_output_fordata
+regenerate_rgb, defalt_layer_forexample, final_output_image, final_image_output_fordata, get_visualization_suggestions, final_placement_generation
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
