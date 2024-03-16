@@ -1264,20 +1264,18 @@ def final_placement_generation(df_path,dic):
   View_color = dic["view_color"]
   Stroke_color = dic["stroke_color"]
   StrokeWidth = dic["strokeWidth"]
-  Width_gap = dic["width_gap"]
-  Height_gap = dic["height_gap"]
   if dic["type"]=="Grid":
     return Make_grid(df_path=df_path,width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color, fill=View_color, stroke = Stroke_color)
   elif dic["type"]=="Isotype_horizontal":
-    return Make_singleIsotype_hor(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+    return Make_singleIsotype_hor(df_path=df_path,colname=Colname[0],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
   elif dic["type"]=="Isotype_vertical":
-    return Make_singleIsotype_ver(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+    return Make_singleIsotype_ver(df_path=df_path,colname=Colname[0],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
   elif dic["type"]=="Linechart":
-    return Make_single_linechart_float(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+    return Make_single_linechart_float(df_path=df_path,colname=Colname[0],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
   elif dic["type"]=="Linechart_withline":
-    return Make_single_linechart_float_withchart(df_path=df_path,colname=Colname[0],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+    return Make_single_linechart_float_withchart(df_path=df_path,colname=Colname[0],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
   elif dic["type"]=="Multi_Isotype":
-    return Make_Multi_IsoType(df_path=df_path,colname1=Colname[0],colname2=Colname[1],width_height=Image_size,width_gap=Width_gap,height_gap=Height_gap,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
+    return Make_Multi_IsoType(df_path=df_path,colname1=Colname[0],colname2=Colname[1],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
   elif dic["type"]=="Bumpchart":
     return Make_Multi_BumpChart(df_path=df_path,colname_str=Colname_with_position[0],colname_float=Colname_with_position[1],width_height=Image_size,strokeWidth=StrokeWidth,background = Background_color,fill=View_color, stroke = Stroke_color)
   elif dic["type"]=="Bumpchart_withline":
@@ -1327,7 +1325,7 @@ def Make_grid(df_path,width_height=100,strokeWidth=2,background = None, fill=Non
   return dic
 
 
-def Make_singleIsotype_hor(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+def Make_singleIsotype_hor(df_path,colname,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "renderer":"svg",
@@ -1341,8 +1339,6 @@ def Make_singleIsotype_hor(df_path,colname,width_height=100,width_gap=50,height_
         {"window": [{"op": "rank", "as": "rank"}], "groupby": ["Name","Bread"]}
         ],
         "mark": {"type": "image", "tooltip": {"content": "data"},"baseline": "middle", "width":width_height, "height":width_height},
-        "width":{"step": width_gap},
-        "height":{"step": height_gap},
         "encoding": {
           "y": {"field": colname, "type": "nominal","sort": "descending",},
           "x": {"field": "rank", "type": "ordinal","axis": None,},
@@ -1354,7 +1350,7 @@ def Make_singleIsotype_hor(df_path,colname,width_height=100,width_gap=50,height_
   return dic
 
 
-def Make_singleIsotype_ver(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+def Make_singleIsotype_ver(df_path,colname,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "renderer":"svg",
@@ -1368,8 +1364,6 @@ def Make_singleIsotype_ver(df_path,colname,width_height=100,width_gap=50,height_
         {"window": [{"op": "rank", "as": "rank"}], "groupby": [colname]}
         ],
         "mark": {"type": "image", "tooltip": {"content": "data"},"baseline": "middle", "width":width_height, "height":width_height},
-        "width":{"step": width_gap},
-        "height":{"step": height_gap},
         "encoding": {
           "x": {"field": colname, "type": "nominal","sort": "descending",},
           "y": {"field": "rank", "type": "ordinal","axis": None,"sort": "descending",},
@@ -1381,7 +1375,7 @@ def Make_singleIsotype_ver(df_path,colname,width_height=100,width_gap=50,height_
   return dic
 
 
-def Make_single_linechart_float(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+def Make_single_linechart_float(df_path,colname,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
     "renderer":"svg",
@@ -1395,7 +1389,7 @@ def Make_single_linechart_float(df_path,colname,width_height=100,width_gap=50,he
       "window": [{"op": "rank", "as": "id"}],
       "groupby": ["data"]
     }],
-  "mark": {"type": "image", "width":width_height, "height":width_height, "baseline": "middle","tooltip": {"content": "data"}},
+  "mark": {"type": "image", "baseline": "middle","tooltip": {"content": "data"}},
   "width":{"step": width_gap},
   "height":{"step": height_gap},
   "encoding": {
@@ -1407,7 +1401,7 @@ def Make_single_linechart_float(df_path,colname,width_height=100,width_gap=50,he
   return dic
 
 
-def Make_single_linechart_float_withchart(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+def Make_single_linechart_float_withchart(df_path,colname,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "renderer":"svg",
@@ -1435,8 +1429,6 @@ def Make_single_linechart_float_withchart(df_path,colname,width_height=100,width
         }
       },
       {"mark": {"type": "image", "width":width_height, "height":width_height, "baseline": "middle","tooltip": {"content": "data"}},
-      "width":{"step": width_gap},
-        "height":{"step": height_gap},
           "encoding": {
           "y": {"field": colname, "type": "quantitative"},
           "x": {"field": "id", "type": "ordinal", "axis": None, "sort": "descending"},
@@ -1447,7 +1439,7 @@ def Make_single_linechart_float_withchart(df_path,colname,width_height=100,width
 
 
 
-def Make_Multi_IsoType(df_path,colname1,colname2,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
+def Make_Multi_IsoType(df_path,colname1,colname2,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
       "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
       "renderer":"svg",
@@ -1462,8 +1454,6 @@ def Make_Multi_IsoType(df_path,colname1,colname2,width_height=100,width_gap=50,h
       {"window": [{"op": "rank", "as": "rank"}], "groupby": [colname1,colname2]}
       ],
       "mark": {"type": "image", "tooltip": {"content": "data"},"baseline": "middle", "width":width_height, "height":width_height},
-      "width":{"step": width_gap},
-      "height":{"step": height_gap},
       "encoding": {
         "y": {"field": colname2, "type": "nominal","sort": "descending",},
         "x": {"field": "rank", "type": "ordinal","axis": None,},
