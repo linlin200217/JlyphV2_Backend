@@ -713,7 +713,25 @@ def dic_forexample(dic_array):
 
   return dic
 
-def Set_Size_Num_forexample(image_id,dic_array):
+
+def wtAndht_forexample(dic_array):
+  dic_for_pos_ = dic_forexample(dic_array)
+  w = max(max(items, key=lambda x: x[0])[0] for items in dic_for_pos_.values())
+  h = max(max(items, key=lambda x: x[1])[1] for items in dic_for_pos_.values())
+ 
+  if w == 0:
+    wt=h/2
+  else: 
+    wt=0
+  if h == 0:
+    ht = w/2
+  else: 
+    ht = h
+  wh = max(w,h)
+  return[int(wt),int(ht),int(wh)]
+
+
+def Set_Size_Num_forexample(wh,wt,ht,image_id,dic_array):
   images = []
   masks = []
   order = []
@@ -723,13 +741,14 @@ def Set_Size_Num_forexample(image_id,dic_array):
   processed_masks = []
   image_id = image_id
   sorted_data = sorted(form_with_position(dic_array), key=lambda x: x['Position'])
-  dic_for_pos = dic_forexample(dic_array)
+  dic_for_pos_ = dic_forexample(dic_array)
+  dic_for_pos = {key: [[x[0] + wt, x[1] - ht] for x in value] for key, value in dic_for_pos_.items()}
   for item in sorted_data:
     images.append(item['outlier_id'])
     masks.append(item['mask_bool'])
     order.append(item['Layer'])
     scale_factors.append(1.2 if item['Form'] == 'Size' else 1)
-  canvas_size = (512,512,3)
+  canvas_size = (512+wh,512+wh,3)
   canvas = np.ones(canvas_size, dtype=np.uint8)*255
   for image_id, mask, scale_factor, (key, positions) in zip(images, masks, scale_factors, dic_for_pos.items()):
     ori_image = get_image_by_id(image_id)
@@ -845,13 +864,13 @@ def find_top_baseline_bgra(extracted):
     return None
 
 
-def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
+def segment_curve_and_paste_extracted_bgra(wh,wt,ht,image_id, dic_array):
     image_ids = []
     masks = []
     gaps = []
     nums = []
     directons = []
-    masks_array = transform_NumpyToBoolean(extract_colnameTopath(Set_Size_Num_forexample(image_id,dic_array)[0],dic_array))
+    masks_array = transform_NumpyToBoolean(extract_colnameTopath(Set_Size_Num_forexample(wh,wt,ht,image_id,dic_array)[0],dic_array))
 
     for item in dic_array:
       if 'Path' in (item.get('Form') or ''):
@@ -861,7 +880,7 @@ def segment_curve_and_paste_extracted_bgra(image_id, dic_array):
             masks.append(masks_array[item['Path_Col']])
     nums = [2] * len(image_ids)
     directions = ["bottom"] * len(image_ids)
-    canvas_id = Set_Size_Num_forexample(image_id,dic_array)[1]
+    canvas_id = Set_Size_Num_forexample(wh,wt,ht,image_id,dic_array)[1]
 
     canvas_pil = get_image_by_id(canvas_id)
     canvas_rgb = np.array(canvas_pil)
@@ -901,10 +920,13 @@ def Num_To_Boolean(dic_array):
 def final_output_image(image_id, dic_array_):
   dic_array = Num_To_Boolean(dic_array_)
   form_combination = determine_form(dic_array)
+  wt = wtAndht_forexample(dic_array)[0]
+  ht = wtAndht_forexample(dic_array)[1]
+  wh = wtAndht_forexample(dic_array)[2]
   if form_combination in ["Number_Vertical", "Number_Horizontal", "Size_Number_Vertical", "Size_Number_Horizontal", "Size"]:
-    return Set_Size_Num_forexample(image_id,dic_array)[1]
+    return Set_Size_Num_forexample(wh,wt,ht,image_id,dic_array)[1]
   elif form_combination in ["Number_Path", "Size_Number_Path"]:
-    return segment_curve_and_paste_extracted_bgra(image_id, dic_array)
+    return segment_curve_and_paste_extracted_bgra(wh,wt,ht,image_id, dic_array)
 
 
 
@@ -986,9 +1008,34 @@ def dic_fordata(dic_array, index, df_path):
 
   return dic
 
+def wtAndht(dic_array_, df_path):
+  df = pd.read_csv(df_path)
+  wt_list=[]
+  ht_list=[]
+  wh_list = []
+  dic_array = Num_To_Boolean(dic_array_)
+  for i in range(0, len(df)):
+     dic_for_pos_ = dic_fordata(dic_array,i)
+     w = max(max(items, key=lambda x: x[0])[0] for items in dic_for_pos_.values())
+     h = max(max(items, key=lambda x: x[1])[1] for items in dic_for_pos_.values())
+ 
+     if w == 0:
+       wt=h/2
+     else: 
+       wt=0
+     if h == 0:
+       ht = w/2
+     else: 
+       ht = h
+     wt_list.append(int(wt))
+     ht_list.append(int(ht))
+     wh = max(w,h)
+     wh_list.append(wh)
+  return[max(wt_list),max(ht_list),max(wh_list)]
 
 
-def Set_Size_Num_fordata(image_id,dic_array,index,df_path):
+
+def Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df_path):
   df = pd.read_csv(df_path)
   images = []
   masks = []
@@ -999,7 +1046,8 @@ def Set_Size_Num_fordata(image_id,dic_array,index,df_path):
   processed_masks = []
   image_id = image_id
   sorted_data = sorted(form_with_position(dic_array), key=lambda x: x['Position'])
-  dic_for_pos = dic_fordata(dic_array,index,df_path)
+  dic_for_pos_ = dic_fordata(dic_array,index)
+  dic_for_pos = {key: [[x[0] + wt, x[1] - ht] for x in value] for key, value in dic_for_pos_.items()}
   for item in sorted_data:
     images.append(item['rgba_id'])
     masks.append(item['mask_bool'])
@@ -1010,7 +1058,7 @@ def Set_Size_Num_fordata(image_id,dic_array,index,df_path):
       scale_factors.append(Normalize_Size(df.loc[index, colname], df, colname))
     else:
       scale_factors.append(1)
-  canvas_size = (512,512,3)
+  canvas_size = (512+wh,512+wh,3)
   canvas = np.ones(canvas_size, dtype=np.uint8)*255
   for image_id, mask, scale_factor, (key, positions) in zip(images, masks, scale_factors, dic_for_pos.items()):
     ori_image = get_image_by_id(image_id)
@@ -1059,14 +1107,14 @@ def Set_Size_Num_fordata(image_id,dic_array,index,df_path):
 
 
 
-def segment_curve_and_paste_extracted_bgra_forData(image_id, dic_array,index,df_path):
+def segment_curve_and_paste_extracted_bgra_forData(wh,wt,ht,image_id, dic_array,index,df_path):
     df = pd.read_csv(df_path)
     image_ids = []
     masks = []
     gaps = []
     nums = []
     directons = []
-    masks_array = transform_NumpyToBoolean(extract_colnameTopath(Set_Size_Num_fordata(image_id,dic_array,index,df_path)[0],dic_array))
+    masks_array = transform_NumpyToBoolean(extract_colnameTopath(Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df_path)[0],dic_array))
 
 
     for item in dic_array:
@@ -1079,7 +1127,7 @@ def segment_curve_and_paste_extracted_bgra_forData(image_id, dic_array,index,df_
         if item['Path_Col'] and item['Path_Col'] in masks_array:
             masks.append(masks_array[item['Path_Col']])
     directions = ["bottom"] * len(image_ids)
-    canvas_id = Set_Size_Num_fordata(image_id,dic_array,index,df_path)[1]
+    canvas_id = Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df_path)[1]
 
 
 
@@ -1117,10 +1165,13 @@ def segment_curve_and_paste_extracted_bgra_forData(image_id, dic_array,index,df_
 def final_output_image_forData(image_id, dic_array_ ,index, df):
   dic_array = Num_To_Boolean(dic_array_)
   form_combination = determine_form(dic_array)
+  wt = wtAndht(dic_array, df)[0]
+  ht = wtAndht(dic_array, df)[1]
+  wh = wtAndht(dic_array, df)[2]
   if form_combination in ["Number_Vertical", "Number_Horizontal", "Size_Number_Vertical", "Size_Number_Horizontal", "Size"]:
-    return Set_Size_Num_fordata(image_id,dic_array,index,df)[1]
+    return Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df)[1]
   elif form_combination in ["Number_Path", "Size_Number_Path"]:
-    return segment_curve_and_paste_extracted_bgra_forData(image_id, dic_array,index, df)
+    return segment_curve_and_paste_extracted_bgra_forData(wh,wt,ht,image_id, dic_array,index, df)
 
 
 
