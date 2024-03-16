@@ -282,7 +282,7 @@ def get_image(image_id):
     return:
         image
     """
-    return send_file(os.path.join(IMAGE_RESOURCE_PATH, image_id + ".png"))
+    return send_file(os.path.join(IMAGE_RESOURCE_PATH, image_id))
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=9009, debug=True)

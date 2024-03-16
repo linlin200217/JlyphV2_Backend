@@ -1304,6 +1304,7 @@ def find_next_largest_n_corrected(df_path):
 def Make_grid(df_path,width_height=100,strokeWidth=2,background = None, fill=None, stroke = None):
   dic = {
           "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+          "renderer":"svg",
           "background": background,
           "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
           "config": {"view": {"stroke": ""}},
@@ -1329,6 +1330,7 @@ def Make_grid(df_path,width_height=100,strokeWidth=2,background = None, fill=Non
 def Make_singleIsotype_hor(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "renderer":"svg",
         "background": background,
         "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
         "config": {"view": {"stroke": ""}},
@@ -1355,6 +1357,7 @@ def Make_singleIsotype_hor(df_path,colname,width_height=100,width_gap=50,height_
 def Make_singleIsotype_ver(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "renderer":"svg",
         "background": background,
         "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
         "config": {"view": {"stroke": ""}},
@@ -1381,6 +1384,7 @@ def Make_singleIsotype_ver(df_path,colname,width_height=100,width_gap=50,height_
 def Make_single_linechart_float(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "renderer":"svg",
     "background": background,
     "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
     "config": {"view": {"stroke": ""}},
@@ -1406,6 +1410,7 @@ def Make_single_linechart_float(df_path,colname,width_height=100,width_gap=50,he
 def Make_single_linechart_float_withchart(df_path,colname,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "renderer":"svg",
         "background": background,
         "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
         "width": 500,  
@@ -1445,6 +1450,7 @@ def Make_single_linechart_float_withchart(df_path,colname,width_height=100,width
 def Make_Multi_IsoType(df_path,colname1,colname2,width_height=100,width_gap=50,height_gap=50,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
       "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "renderer":"svg",
       "background": background,
       "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
       "config": {"view": {"stroke": ""}, },
@@ -1475,6 +1481,7 @@ def Make_Multi_IsoType(df_path,colname1,colname2,width_height=100,width_gap=50,h
 def Make_Multi_LineChart(df_path,colname1,colname2,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
       "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "renderer":"svg",
       "background": background,
       "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
       "config": {"view": {"stroke": ""}, },
@@ -1499,6 +1506,7 @@ def Make_Multi_LineChart(df_path,colname1,colname2,width_height=100,strokeWidth=
 def Make_Multi_LineChart_withChart(df_path,colname1,colname2,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "renderer":"svg",
     "background": background,
     "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
     "config": {"view": {"stroke": ""}, },
@@ -1538,6 +1546,7 @@ def Make_Multi_LineChart_withChart(df_path,colname1,colname2,width_height=100,st
 def Make_Multi_BumpChart(df_path,colname_str,colname_float,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "renderer":"svg",
     "background": background,
     "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
     "description": "Bump chart",
@@ -1563,6 +1572,7 @@ def Make_Multi_BumpChart(df_path,colname_str,colname_float,width_height=100,stro
 def Make_Multi_BumpChart_withChart(df_path,colname_str,colname_float,width_height=100,strokeWidth=2,background = None,fill=None, stroke = None):
   dic = {
     "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "renderer":"svg",
     "background": background,
     "view":{"fill": fill, "stroke": stroke, "strokeCap":"round", "strokeJoin":"round", "strokeMiterLimit":20, "strokeWidth":strokeWidth,"cornerRadius":5},
     "description": "Bump chart",
