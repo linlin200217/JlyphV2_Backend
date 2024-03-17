@@ -1015,7 +1015,7 @@ def wtAndht(dic_array_, df_path):
   wh_list = []
   dic_array = Num_To_Boolean(dic_array_)
   for i in range(0, len(df)):
-     dic_for_pos_ = dic_fordata(dic_array,i)
+     dic_for_pos_ = dic_fordata(dic_array,i,df_path)
      w = max(max(items, key=lambda x: x[0])[0] for items in dic_for_pos_.values())
      h = max(max(items, key=lambda x: x[1])[1] for items in dic_for_pos_.values())
  
