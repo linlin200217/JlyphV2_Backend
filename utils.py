@@ -782,6 +782,7 @@ def Set_Size_Num_forexample(wh,wt,ht,image_id,dic_array):
             
 
             processed_images.append((key, translated_image, translated_mask))
+  '''
   for layer in order:
     layer_index = layer - 1 
     for item in processed_images:
@@ -790,7 +791,16 @@ def Set_Size_Num_forexample(wh,wt,ht,image_id,dic_array):
 
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
             canvas[mask > 0] = image_rgb[mask > 0]
+  '''
+  order_mapping = {value: idx for idx, value in enumerate(order)}
 
+  sorted_images = [None] * len(processed_images)
+  for i, order_value in enumerate(order):
+      sorted_images[order_value-1] = processed_images[i]
+  for _, image, mask in sorted_images:
+      image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+      canvas[mask > 0] = image_rgb[mask > 0]
+      
   final_image = Image.fromarray(canvas) 
   size_num_id = save_image(final_image, "Numerical")
   return corrected_masks, size_num_id
@@ -1092,6 +1102,7 @@ def Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df_path):
 
 
             processed_images.append((key, translated_image, translated_mask))
+  '''
   for layer in order:
     layer_index = layer - 1
     for item in processed_images:
@@ -1100,7 +1111,17 @@ def Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df_path):
 
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             canvas[mask > 0] = image_rgb[mask > 0]
+  '''
 
+  order_mapping = {value: idx for idx, value in enumerate(order)}
+
+  sorted_images = [None] * len(processed_images)
+  for i, order_value in enumerate(order):
+      sorted_images[order_value-1] = processed_images[i]
+  for _, image, mask in sorted_images:
+      image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+      canvas[mask > 0] = image_rgb[mask > 0]
+      
   final_image = Image.fromarray(canvas)
   size_num_id = save_image(final_image, "Final")
   return corrected_masks, size_num_id
