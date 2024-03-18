@@ -1046,7 +1046,7 @@ def Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df_path):
   processed_masks = []
   image_id = image_id
   sorted_data = sorted(form_with_position(dic_array), key=lambda x: x['Position'])
-  dic_for_pos_ = dic_fordata(dic_array,index)
+  dic_for_pos_ = dic_fordata(dic_array,index,df_path)
   dic_for_pos = {key: [[x[0] + wt, x[1] - ht] for x in value] for key, value in dic_for_pos_.items()}
   for item in sorted_data:
     images.append(item['rgba_id'])
