@@ -1475,8 +1475,6 @@ def Make_single_linechart_float(df_path,colname,width_height=100,strokeWidth=2,b
       "groupby": ["data"]
     }],
   "mark": {"type": "image", "baseline": "middle","tooltip": {"content": "data"}},
-  "width":{"step": width_gap},
-  "height":{"step": height_gap},
   "encoding": {
       "y": {"field": colname, "type": "quantitative"},
       "x": {"field": "id", "type": "ordinal", "axis": None, "sort": "descending"},
@@ -1506,8 +1504,6 @@ def Make_single_linechart_float_withchart(df_path,colname,width_height=100,strok
           "color": "gray",
   
           },
-        "width":{"step": width_gap},
-        "height":{"step": height_gap},
         "encoding": {
           "y": {"field": colname, "type": "quantitative"},
           "x": {"field": "id", "type": "ordinal", "axis": None, "sort": "descending"},
