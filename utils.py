@@ -1131,9 +1131,8 @@ def Set_Size_Num_fordata(wh,wt,ht,image_id,dic_array,index,df_path):
 
 
   for _, image, mask in sorted_images:
-      image_rgba = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
-      canvas[mask > 0, :3] = image_rgba[mask > 0, :3]
-      canvas[mask > 0, 3] = 255
+          image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+          canvas[mask > 0] = image_rgb[mask > 0]
 
   final_image = Image.fromarray(canvas)
   size_num_id = save_image(final_image, "Final")
