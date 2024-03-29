@@ -438,7 +438,7 @@ def convert_RGBA_batch(prompt, mask_forall, chosen_image_id, path):
     for c in masks.keys():
         initial_widget = masks[c][0]
         initial_mask_num = masks[c][1]
-        initial_image = extract_initial_image(initial_widget, chosen_image_id, initial_mask_num)  # 假设这返回一个字符串
+        initial_image = extract_initial_image(initial_widget, chosen_image_id, initial_mask_num)
         initial_image_ids[c] = initial_image
     category_image_ids = initial_image_ids
 
@@ -1266,20 +1266,20 @@ def final_process_data(dic_array_input, categorical_result, df_path):
 
     return data
 
-'''
-def final_image_output_fordata(dic_array_input, categorical_result, df_path, image_id):
-  processed_data = final_process_data(dic_array_input, categorical_result, df_path)
-  dic_output = {}
-  dic_output_cartoon = {}
-  for i in range(0, len(processed_data)):
-    dics = processed_data[i]
-    remove_background = rembg.remove(get_image_by_id(final_output_image_forData(image_id, dics, i, df_path)))
-    dic_output[i] = save_image(remove_background,"Final")
-    cartoon_style = get_image_by_id(final_output_image_forData(image_id, dics,i,df_path))
-    dic_output_cartoon[i] = save_image(rembg.remove(face2paint(model, cartoon_style)),"Cartoon")
-  converted_output = [[{"index": key, "image_id": value} for key, value in dic_output.items()],[{"index": key, "image_id": value} for key, value in dic_output_cartoon.items()]]
-  return converted_output
-'''
+
+# def final_image_output_fordata(dic_array_input, categorical_result, df_path, image_id):
+#   processed_data = final_process_data(dic_array_input, categorical_result, df_path)
+#   dic_output = {}
+#   dic_output_cartoon = {}
+#   for i in range(0, len(processed_data)):
+#     dics = processed_data[i]
+#     remove_background = rembg.remove(get_image_by_id(final_output_image_forData(image_id, dics, i, df_path)))
+#     dic_output[i] = save_image(remove_background,"Final")
+#     cartoon_style = get_image_by_id(final_output_image_forData(image_id, dics,i,df_path))
+#     dic_output_cartoon[i] = save_image(rembg.remove(face2paint(model, cartoon_style)),"Cartoon")
+#   converted_output = [[{"index": key, "image_id": value} for key, value in dic_output.items()],[{"index": key, "image_id": value} for key, value in dic_output_cartoon.items()]]
+#   return converted_output
+
 def final_image_output_fordata(dic_array_input, categorical_result, df_path, image_id):
   processed_data = final_process_data(dic_array_input, categorical_result, df_path)
   dic_output = {}
