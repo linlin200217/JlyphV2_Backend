@@ -39,6 +39,25 @@ async def pregenerate():
     image_ids = image_recommendation(request.json["user_prompt"])
     return jsonify({"status": "success", "image_id": image_ids})
 
+@app.route("/upload_user_image", methods=["POST"])
+def upload_user_image():
+    """
+    POST IMAGE_FILE
+    return 
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    if file:
+        img = Image.open(file.stream)
+        image_id = save_image(img, "user")
+        return jsonify({"image_id": image_id})
+
 @app.route("/maskselect", methods=["POST"])
 async def maskselect():
     """
